@@ -33,6 +33,8 @@ module.exports = class Field {
       label: this.label,
       path: this.path,
       type: this.constructor.name,
+      // TODO: Confirm whether this was supposed to be here
+      // If so, is this only going to be used in the backend?
       defaultValue: this.config.defaultValue,
     });
   }

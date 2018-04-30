@@ -6,6 +6,7 @@ export default class List {
 
     // TODO: undo this
     Object.assign(this, config);
+    console.log('Field before controller', config)
 
     this.fields = config.fields.map(fieldConfig => {
       const { Controller } = FieldTypes[config.key][fieldConfig.path];

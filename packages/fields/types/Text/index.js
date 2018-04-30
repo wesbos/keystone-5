@@ -4,8 +4,8 @@ const Text = require('./Text');
 module.exports = {
   type: 'Text',
   implementation: Text,
+  Controller: path.resolve(__dirname, './Controller'),
   views: {
-    Controller: path.resolve(__dirname, './Controller'),
     Field: path.resolve(__dirname, './views/Field'),
   },
   adapters: {

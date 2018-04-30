@@ -5,12 +5,18 @@ import React from 'react';
 import List from '../classes/List';
 
 const sourceMeta = KEYSTONE_ADMIN_META;
+console.log('KEYSTONE_ADMIN_META', KEYSTONE_ADMIN_META);
+
+import fieldViews from '../pages/KEYSTONE_FIELD_VIEWS';
+console.log('fieldViews', fieldViews);
 
 const { lists } = sourceMeta;
 const listKeys = Object.keys(lists);
 const listsByPath = listKeys.reduce((map, key) => {
   const listConfig = lists[key];
   const list = new List(listConfig);
+  // Add the view components to each Field of our List
+  // list.views = fieldViews[key];
   // replace the config with the list instance
   lists[key] = list;
   // make the list available in the path map
@@ -28,6 +34,8 @@ const adminMeta = {
     return listsByPath[path];
   },
 };
+
+console.log('Transformed adminMeta', adminMeta)
 
 // Provider
 

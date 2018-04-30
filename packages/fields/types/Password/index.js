@@ -4,8 +4,8 @@ const Password = require('./Password');
 module.exports = {
   type: 'Password',
   implementation: Password,
+  Controller: path.resolve(__dirname, './Controller'),
   views: {
-    Controller: path.resolve(__dirname, './Controller'),
     Field: path.resolve(__dirname, './views/Field'),
   },
   adapters: {

@@ -31,6 +31,11 @@ module.exports = class List {
         })
       : [];
 
+    this.controllers = {};
+    Object.entries(config.fields).forEach(([path, fieldConfig]) => {
+      this.controllers[path] = fieldConfig.type.Controller;
+    });
+
     this.views = {};
     Object.entries(config.fields).forEach(([path, fieldConfig]) => {
       const fieldType = fieldConfig.type;
@@ -171,6 +176,7 @@ module.exports = class List {
       updateMutationName: this.updateMutationName,
       createMutationName: this.createMutationName,
       fields: this.fields.map(i => i.getAdminMeta()),
+      controllers: this.controllers,
       views: this.views,
     };
   }
