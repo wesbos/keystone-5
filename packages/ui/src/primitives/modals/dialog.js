@@ -6,8 +6,8 @@ import styled from 'react-emotion';
 import ScrollLock from 'react-scrolllock';
 
 import FocusTrap, { type FocusTarget } from './FocusTrap';
-import { Fade, SlideUp, withTransitionState } from './transitions';
 import { Blanket } from './common';
+import { Fade, SlideUp, withTransitionState } from '../transitions';
 import { colors } from '../../theme';
 import { alpha } from '../../theme/color-utils';
 

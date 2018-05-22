@@ -14,23 +14,29 @@ export const transitionTimingFunction = 'cubic-bezier(0.2, 0, 0, 1)';
 type TransitionState = 'entering' | 'entered' | 'exiting' | 'exited';
 type ProviderProps = {
   children: TransitionState => Node | Element<*>,
+  duration: number,
   isOpen: boolean,
 };
 
-export const TransitionProvider = ({ children, isOpen }: ProviderProps) => (
+// Wrapper for providing transition state
+export const TransitionProvider = ({
+  children,
+  duration,
+  isOpen,
+}: ProviderProps) => (
   <TransitionGroup component={null}>
     {isOpen ? (
-      <Transition
-        appear
-        mountOnEnter
-        unmountOnExit
-        timeout={transitionDurationMs}
-      >
+      <Transition appear mountOnEnter unmountOnExit timeout={duration}>
         {state => children(state)}
       </Transition>
     ) : null}
   </TransitionGroup>
 );
+TransitionProvider.defaultProps = {
+  duration: transitionDurationMs,
+};
+
+// Expose a HoC for certain cases
 export const withTransitionState = (Comp: ComponentType<*>) => ({
   isOpen,
   ...props
@@ -79,7 +85,7 @@ const TransitionReducer = ({
 // Transitions
 // ==============================
 
-function makeTransitionBase(transitionProperty: string) {
+export function makeTransitionBase(transitionProperty: string) {
   return { transitionProperty, transitionDuration, transitionTimingFunction };
 }
 

@@ -5,8 +5,8 @@ import styled from 'react-emotion';
 import { Link } from 'react-router-dom';
 
 import { borderRadius, colors, gridSize } from '../../theme';
+import { SlideDown } from '../transitions';
 import FocusTrap from './FocusTrap';
-import { SlideDown } from './transitions';
 import withModalHandlers, { type CloseType } from './withModalHandlers';
 
 const ItemElement = props => {

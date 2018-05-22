@@ -5,8 +5,8 @@ import styled from 'react-emotion';
 import { createPortal } from 'react-dom';
 
 import { borderRadius, gridSize } from '../../theme';
+import { SlideDown } from '../transitions';
 import FocusTrap from './FocusTrap';
-import { SlideDown } from './transitions';
 import withModalHandlers, { type CloseType } from './withModalHandlers';
 
 const ARROW_WIDTH = 8;

@@ -8,7 +8,7 @@ import React, {
   type Element,
 } from 'react';
 import NodeResolver from 'react-node-resolver';
-import { TransitionProvider } from './transitions';
+import { TransitionProvider } from '../transitions';
 
 export type CloseType = ({ returnFocus: boolean }) => void;
 type Props = {
