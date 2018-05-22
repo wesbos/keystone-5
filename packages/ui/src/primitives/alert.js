@@ -1,7 +1,14 @@
 // @flow
 
-import { type Node } from 'react';
+import React, { PureComponent, type Node } from 'react';
 import styled from 'react-emotion';
+import { XIcon } from '@keystonejs/icons';
+
+import {
+  makeTransitionBase,
+  transitionDuration,
+  withTransitionState,
+} from './transitions';
 
 import { borderRadius, colors } from '../theme';
 
@@ -39,7 +46,7 @@ type Props = {
   variant: 'bold' | 'subtle',
 };
 
-export const Alert = styled.div(({ appearance, variant }: Props) => ({
+const AlertElement = styled.div(({ appearance, variant }: Props) => ({
   backgroundColor:
     variant === 'bold'
       ? boldBackgroundColor[appearance]
@@ -63,7 +70,104 @@ export const Alert = styled.div(({ appearance, variant }: Props) => ({
   },
 }));
 
+const DismissButton = styled.button(({ appearance, variant }) => {
+  return {
+    alignItems: 'center',
+    backgroundColor:
+      variant === 'bold'
+        ? boldTextColor[appearance]
+        : subtleTextColor[appearance],
+    color:
+      variant === 'bold'
+        ? boldBackgroundColor[appearance]
+        : subtleBackgroundColor[appearance],
+    border: 0,
+    borderRadius: '50%',
+    cursor: 'pointer',
+    display: 'flex',
+    height: 18,
+    justifyContent: 'center',
+    opacity: 0.66,
+    outline: 0,
+    transition: 'opacity 150ms',
+    width: 18,
+
+    // "squash" the SVG icon
+    paddingLeft: 5,
+    paddingRight: 5,
+
+    ':hover, :focus': {
+      opacity: 1,
+    },
+  };
+});
+
+export const Alert = ({ children, onDismiss, ...props }) => (
+  <AlertElement {...props}>
+    <div css={{ flex: 1 }}>{children}</div>
+    {onDismiss ? (
+      <DismissButton
+        onClick={onDismiss}
+        appearance={props.appearance}
+        variant={props.variant}
+      >
+        <XIcon />
+      </DismissButton>
+    ) : null}
+  </AlertElement>
+);
 Alert.defaultProps = {
   appearance: 'info',
   variant: 'subtle',
 };
+
+const transitionBase = makeTransitionBase('height, opacity');
+class Animation extends PureComponent<*> {
+  height: number;
+  getHeightTransition = () => {
+    const { transitionState } = this.props;
+    const outerDynamic = {
+      entering: { height: 0 },
+      entered: { height: this.height },
+      exiting: { height: 0 },
+      exited: { height: 0 },
+    };
+
+    return {
+      overflow: 'hidden',
+      ...transitionBase,
+      ...outerDynamic[transitionState],
+    };
+  };
+  getOpacityTransition = () => {
+    const { transitionState } = this.props;
+    const innerDynamic = {
+      entering: { opacity: 0 },
+      entered: {
+        opacity: 1,
+        transitionDelay: transitionDuration,
+      },
+      exiting: { opacity: 0 },
+      exited: { opacity: 0 },
+    };
+
+    return {
+      ...transitionBase,
+      ...innerDynamic[transitionState],
+    };
+  };
+  getNode = ref => {
+    this.height = ref ? ref.scrollHeight : 0;
+  };
+  render() {
+    const { transitionState, ...props } = this.props;
+
+    return (
+      <div style={this.getHeightTransition()} ref={this.getNode}>
+        <Alert {...props} style={this.getOpacityTransition()} />
+      </div>
+    );
+  }
+}
+
+export const AnimatedAlert = withTransitionState(Animation);
