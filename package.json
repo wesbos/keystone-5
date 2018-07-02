@@ -18,7 +18,7 @@
     "lint:eslint": "eslint .",
     "lint:prettier": "prettier --list-different \"**/*.js\"",
     "lint": "yarn lint:prettier && yarn lint:eslint",
-    "start": "cd packages/test-project && yarn start",
+    "start": "cd projects/access-control && yarn start",
     "test": "yarn lint && yarn test:unit && yarn cypress:run",
     "test:unit": "jest",
     "test:unit:debug": "node --inspect-brk `which jest` --runInBand",
