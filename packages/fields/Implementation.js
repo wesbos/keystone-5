@@ -2,7 +2,7 @@ const inflection = require('inflection');
 const { parseACL, pick } = require('@keystonejs/utils');
 
 module.exports = class Field {
-  constructor(path, config, { getListByKey, listKey, defaultAccess }) {
+  constructor(path, config, { getListByKey, listKey, defaultAccess = [] }) {
     this.path = path;
     this.config = config;
     this.getListByKey = getListByKey;

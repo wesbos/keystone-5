@@ -21,6 +21,7 @@
     "start": "cd packages/test-project && yarn start",
     "test": "yarn lint && yarn test:unit && yarn cypress:run",
     "test:unit": "jest",
+    "test:unit:debug": "node --inspect-brk `which jest` --runInBand",
     "test:server:start": "DISABLE_AUTH=true pm2 start packages/test-project/index.js",
     "test:server:stop": "pm2 stop all"
   },

@@ -4,8 +4,9 @@ const List = require('../List');
 class MockAdminMeta {}
 
 class MockType {
-  constructor(name) {
+  constructor(name, { access }) {
     this.name = name;
+    this.acl = access;
   }
   addToMongooseSchema = jest.fn();
   getAdminMeta = () => new MockAdminMeta();
@@ -28,6 +29,12 @@ const config = {
           viewType2: 'viewPath2',
         },
       },
+      access: {
+        create: true,
+        read: true,
+        update: true,
+        delete: true,
+      }
     },
     email: {
       type: {
@@ -37,23 +44,40 @@ const config = {
           viewType4: 'viewPath4',
         },
       },
+      access: {
+        create: true,
+        read: true,
+        update: true,
+        delete: true,
+      }
     },
   },
 };
 
+function mockKeystone() {
+  return {
+    defaultAccess: [],
+    auth: {},
+  };
+}
+
 describe('new List()', () => {
   test('new List() - Smoke test', () => {
+    const keystone = mockKeystone();
     const list = new List('Test', config, {
       mongoose: new Mongoose(),
       lists: [],
+      keystone,
     });
     expect(list).not.toBeNull();
   });
 
   test('new List() - labels', () => {
+    const keystone = mockKeystone();
     const list = new List('Test', config, {
       mongoose: new Mongoose(),
       lists: [],
+      keystone,
     });
     expect(list.label).toEqual('Tests');
     expect(list.singular).toEqual('Test');
@@ -69,9 +93,11 @@ describe('new List()', () => {
   });
 
   test('new List() - fields', () => {
+    const keystone = mockKeystone();
     const list = new List('Test', config, {
       mongoose: new Mongoose(),
       lists: [],
+      keystone,
     });
     expect(list.fields).toHaveLength(2);
     expect(list.fields[0]).toBeInstanceOf(MockType);
@@ -79,9 +105,11 @@ describe('new List()', () => {
   });
 
   test('new List() - views', () => {
+    const keystone = mockKeystone();
     const list = new List('Test', config, {
       mongoose: new Mongoose(),
       lists: [],
+      keystone,
     });
     expect(list.views).toEqual({
       name: {
@@ -98,18 +126,22 @@ describe('new List()', () => {
 
 describe('getAdminMeta()', () => {
   test('adminMeta() - Smoke test', () => {
+    const keystone = mockKeystone();
     const list = new List('Test', config, {
       mongoose: new Mongoose(),
       lists: [],
+      keystone,
     });
     const adminMeta = list.getAdminMeta();
     expect(adminMeta).not.toBeNull();
   });
 
   test('getAdminMeta() - labels', () => {
+    const keystone = mockKeystone();
     const list = new List('Test', config, {
       mongoose: new Mongoose(),
       lists: [],
+      keystone,
     });
     const adminMeta = list.getAdminMeta();
 
@@ -128,9 +160,11 @@ describe('getAdminMeta()', () => {
   });
 
   test('getAdminMeta() - fields', () => {
+    const keystone = mockKeystone();
     const list = new List('Test', config, {
       mongoose: new Mongoose(),
       lists: [],
+      keystone,
     });
     const adminMeta = list.getAdminMeta();
 
@@ -140,9 +174,11 @@ describe('getAdminMeta()', () => {
   });
 
   test('getAdminMeta() - views', () => {
+    const keystone = mockKeystone();
     const list = new List('Test', config, {
       mongoose: new Mongoose(),
       lists: [],
+      keystone,
     });
     const adminMeta = list.getAdminMeta();
 
@@ -160,9 +196,11 @@ describe('getAdminMeta()', () => {
 });
 
 test('getAdminGraphqlTypes()', () => {
+  const keystone = mockKeystone();
   const list = new List('Test', config, {
     mongoose: new Mongoose(),
     lists: [],
+    keystone,
   });
   const types = list.getAdminGraphqlTypes();
 
@@ -214,9 +252,11 @@ test('getAdminGraphqlTypes()', () => {
 });
 
 test('getAdminGraphqlQueries()', () => {
+  const keystone = mockKeystone();
   const list = new List('Test', config, {
     mongoose: new Mongoose(),
     lists: [],
+    keystone,
   });
   const queries = list.getAdminGraphqlQueries();
 
@@ -250,9 +290,11 @@ test('getAdminGraphqlQueries()', () => {
 });
 
 test('getAdminGraphqlMutations()', () => {
+  const keystone = mockKeystone();
   const list = new List('Test', config, {
     mongoose: new Mongoose(),
     lists: [],
+    keystone,
   });
   const mutations = list.getAdminGraphqlMutations().map(mute => mute.trim());
 
@@ -261,13 +303,19 @@ test('getAdminGraphqlMutations()', () => {
         createTest(
           data: TestUpdateInput
         ): Test
+    `.trim(),
+    `
         updateTest(
           id: String!
           data: TestUpdateInput
         ): Test
+    `.trim(),
+    `
         deleteTest(
           id: String!
         ): Test
+    `.trim(),
+    `
         deleteTests(
           ids: [String!]
         ): Test
@@ -276,9 +324,11 @@ test('getAdminGraphqlMutations()', () => {
 });
 
 test('getAdminQueryResolvers()', () => {
+  const keystone = mockKeystone();
   const list = new List('Test', config, {
     mongoose: new Mongoose(),
     lists: [],
+    keystone,
   });
   const resolvers = list.getAdminQueryResolvers();
 
@@ -288,9 +338,11 @@ test('getAdminQueryResolvers()', () => {
 });
 
 test('getAdminMutationResolvers()', () => {
+  const keystone = mockKeystone();
   const list = new List('Test', config, {
     mongoose: new Mongoose(),
     lists: [],
+    keystone,
   });
   const resolvers = list.getAdminMutationResolvers();
 
