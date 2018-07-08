@@ -152,11 +152,21 @@ keystone.createList('Audit', {
       },
     },
   },
+  // Only admins have access
   access: {
-    create: true,
-    read: true,
-    update: true,
-    delete: true,
+    create: ({ authentication: { item, listKey } }) => (
+      listKey === 'User' && ['su', 'admin'].includes(item.level)
+    ),
+    read: ({ authentication: { item, listKey } }) => {
+      console.log({ item, listKey });
+      return listKey === 'User' && ['su', 'admin'].includes(item.level);
+    },
+    update: ({ authentication: { item, listKey } }) => (
+      listKey === 'User' && ['su', 'admin'].includes(item.level)
+    ),
+    delete: ({ authentication: { item, listKey } }) => (
+      listKey === 'User' && ['su', 'admin'].includes(item.level)
+    ),
   },
 });
 
@@ -168,8 +178,8 @@ keystone.createList('Log', {
   access: {
     create: true,
     read: false,
-    update: true,
-    delete: true,
+    update: false,
+    delete: false,
   },
 });
 

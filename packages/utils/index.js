@@ -106,4 +106,5 @@ exports.parseACL = (obj, { accessTypes, listKey, path = '' }) => {
 
 exports.checkAccess = ({ access, dynamicCheckData = noop } = {}) => {
   return access && (typeof access !== 'function' || access(dynamicCheckData()));
+
 };

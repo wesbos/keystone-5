@@ -3,7 +3,7 @@ module.exports = {
     {
       name: 'Ticiana',
       email: 'ticiana@keystonejs.com',
-      password: 'password',
+      password: 'correct',
       level: 'su',
       internal: 'abc',
       posts: { where: { title: 'Hello' } },
@@ -11,7 +11,7 @@ module.exports = {
     {
       name: 'Boris Bozic',
       email: 'boris@keystonejs.com',
-      password: 'password',
+      password: 'battery',
       level: 'admin',
       internal: 'def',
       posts: { where: { title: 'Hellwhoa' } },
@@ -19,7 +19,7 @@ module.exports = {
     {
       name: 'Jed Watson',
       email: 'jed@keystonejs.com',
-      password: 'password',
+      password: 'horse',
       level: 'editor',
       internal: 'ghi',
       posts: { where: { title: 'Aloha' } },
@@ -27,7 +27,7 @@ module.exports = {
     {
       name: 'John Molomby',
       email: 'john@keystonejs.com',
-      password: 'password',
+      password: 'staple',
       level: 'writer',
       internal: 'jkl',
       posts: { where: { title: 'Salut' } },
@@ -35,7 +35,7 @@ module.exports = {
     {
       name: 'Jess Telford',
       email: 'jess@keystonejs.com',
-      password: 'password',
+      password: 'xkcd',
       level: 'reader',
       internal: 'mno',
       posts: [{ where: { title: 'Bonjour' } }, { where: { title: "G'day" } }],

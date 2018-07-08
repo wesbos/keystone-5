@@ -139,6 +139,7 @@ module.exports = class List {
   getAdminMeta() {
     return {
       key: this.key,
+      acl: this.acl,
       label: this.label,
       singular: this.singular,
       plural: this.plural,
@@ -313,7 +314,9 @@ createdAt_DESC
     // the graphql schema
     if (this.acl.read) {
       resolvers = {
-        [this.listQueryName]: (_, args, context) => {
+        [this.listQueryName]: (...params) => {
+          const args = params[1];
+          const context = params[2];
           if (
             !checkAccess({
               access: this.acl.read,
@@ -344,7 +347,7 @@ createdAt_DESC
           return this.itemsQuery(args, context);
         },
 
-        [this.listQueryMetaName]: (_, args, { authedItem, authedListKey }, context) => {
+        [this.listQueryMetaName]: (_, args, { authedItem, authedListKey }) => {
           if (
             !checkAccess({
               access: this.acl.read,
@@ -366,8 +369,8 @@ createdAt_DESC
                 name: this.listQueryMetaName,
               },
               internalData: {
-                authedId: context.authedItem && context.authedItem.id,
-                authedListKey: context.authedListKey,
+                authedId: authedItem && authedItem.id,
+                authedListKey: authedListKey,
               },
             });
           }
@@ -677,7 +680,6 @@ createdAt_DESC
 
     if (this.acl.create) {
       mutationResolvers[this.createMutationName] = async (_, { data }, context) => {
-        console.log(this.createMutationName);
         this.throwIfAccessDeniedOnList({
           accessType: 'create',
           data,

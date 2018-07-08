@@ -77,7 +77,13 @@ module.exports = class Keystone {
   getAdminMeta() {
     const { name } = this.config;
     const lists = this.listsArray.reduce((acc, list) => {
-      acc[list.key] = list.getAdminMeta();
+      // If it's possible to read or create, we need to include the list
+      // Otherwise, it doesn't matter if it's able to be updated or deleted,
+      // those actions can't be done in the Admin UI without also having `read`
+      // permissions
+      if (list.acl.read || list.acl.create) {
+        acc[list.key] = list.getAdminMeta();
+      }
       return acc;
     }, {});
 

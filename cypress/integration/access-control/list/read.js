@@ -1,59 +1,105 @@
+/* eslint-disable jest/valid-expect */
+const { User: users } = require('../../../../projects/access-control/data');
+
+const usersByLevel = users.reduce(
+  (memo, user) => {
+    memo[user.level] = memo[user.level] || [];
+    memo[user.level].push(user);
+    return memo;
+  },
+  {},
+);
+
 describe('Access Control, List, Read', () => {
+  describe.skip('defaults', () => {
+    it.skip('defaults to `read: true`', () => {
+      // TODO
+    });
+
+    it.skip('expands single-option format correctly', () => {
+      // TODO: Check that `access: true`/`access: (auth) => auth.isAdmin`
+      // correctly expands to the 'read' part of the CRUD ACL
+    });
+  });
+
   describe('`read: false` static config', () => {
-    it.skip('excludes from graphQL endpoint', () => {
-      // TODO: Check `Logs` graphql types etc (introspection)
+    it.skip('cannot be introspected when logged out', () => {
+      // TODO
     });
 
-    it.skip('excludes from Admin UI', () => {
+    describe('logged in', () => {
+      beforeEach(() => (
+        cy
+        .task('getProjectInfo', 'access-control')
+        .then(({ env: { PORT } }) =>
+          cy.loginToKeystone(usersByLevel['su'][0].email, usersByLevel['su'][0].password, PORT)
+        )
+      ));
 
-    });
+      it('is innaccessible from Admin UI', () => {
+        cy.get('body').should('not.contain', 'Logs');
 
-    it.skip('excludes from routing', () => {
+        cy
+          .task('getProjectInfo', 'access-control')
+          .then(({ env: { PORT } }) =>
+            cy.visit(`http://localhost:${PORT}/admin/logs`)
+          );
 
+        cy.get('body').should('contain', "The list “logs” doesn't exist");
+      });
     });
   });
 
   describe('`read: () => false` dynamic config', () => {
-    it.skip('still includes in graphQL endpoint', () => {
-      // TODO: Check `Audit` graphql types etc - Ideally should only be
-      // readable by `su` kind of user (introspection), but the current code
-      // will still show them.
-    });
+    describe('logged in', () => {
+      beforeEach(() => (
+        cy
+        .task('getProjectInfo', 'access-control')
+        .then(({ env: { PORT } }) =>
+          cy.loginToKeystone(usersByLevel['reader'][0].email, usersByLevel['reader'][0].password, PORT)
+        )
+      ));
 
-    it.skip('errors on GraphQL access', () => {
+      it('is innaccessible from Admin UI', () => {
+        cy.get('body').should('not.contain', 'Audits');
 
-    });
+        cy
+          .task('getProjectInfo', 'access-control')
+          .then(({ env: { PORT } }) =>
+            cy.visit(`http://localhost:${PORT}/admin/audits`)
+          );
 
-    it.skip('excludes from Admin UI', () => {
-      // TODO: Login as appropriate user
-    });
-
-    it.skip('excludes from routing', () => {
-      // TODO: Login as appropriate user
+        cy.get('body').should('contain', 'You do not have access to this resource');
+      });
     });
   });
 
   describe('`read: () => true` dynamic config', () => {
-    it.skip('still includes in graphQL endpoint', () => {
-      // TODO: Check `Audit` graphql types etc - Ideally should only be
-      // readable by `su` kind of user (introspection), but the current code
-      // will still show them.
-    });
+    describe('logged in', () => {
+      beforeEach(() => {
+        cy
+          .task('getProjectInfo', 'access-control')
+          .then(({ env: { PORT } }) =>
+            cy.loginToKeystone(usersByLevel['su'][0].email, usersByLevel['su'][0].password, PORT)
+          );
+      });
 
-    it.skip('GraphQL access succeeds', () => {
-      // TODO: Login as appropriate user
-    });
+      it('includes in Admin UI', () => {
+        // TODO: Check body text too
+        cy.get('body nav').should('contain', 'Audits');
+      });
 
-    it.skip('includes in Admin UI header', () => {
-      // TODO: Login as appropriate user
-    });
+      it('includes in routing', () => {
+        cy
+          .task('getProjectInfo', 'access-control')
+          .then(({ env: { PORT } }) =>
+            cy.visit(`http://localhost:${PORT}/admin/audits`)
+          );
 
-    it.skip('includes in Admin UI home page', () => {
-      // TODO: Login as appropriate user
-    });
+        cy.get('body').should('not.contain', "The list “Audits” doesn't exist");
+        cy.get('body h1').should('contain', 'Audits');
+      });
 
-    it.skip('includes in routing', () => {
-      // TODO: Login as appropriate user
     });
   });
 });
