@@ -201,26 +201,29 @@ module.exports = class List {
       .join('\n\n        ');
 
     const types = [
-      `
-      type ${this.key} {
-        id: String
-        # This virtual field will be resolved in one of the following ways (in this order):
-        # 1. Execution of 'labelResolver' set on the ${this.key} List config, or
-        # 2. As an alias to the field set on 'labelField' in the ${
-          this.key
-        } List config, or
-        # 3. As an alias to a 'name' field on the ${
-          this.key
-        } List (if one exists), or
-        # 4. As an alias to the 'id' field on the ${this.key} List.
-        _label_: String
-        ${fieldSchemas}
-      }
-      `,
       // TODO: AND / OR filters:
       // https://github.com/opencrud/opencrud/blob/master/spec/2-relational/2-2-queries/2-2-3-filters.md#boolean-expressions
       ...fieldTypes,
     ];
+
+    if (this.acl.read || this.acl.create || this.acl.update || this.acl.delete) {
+      types.push(`
+        type ${this.key} {
+          id: String
+          # This virtual field will be resolved in one of the following ways (in this order):
+          # 1. Execution of 'labelResolver' set on the ${this.key} List config, or
+          # 2. As an alias to the field set on 'labelField' in the ${
+            this.key
+          } List config, or
+          # 3. As an alias to a 'name' field on the ${
+            this.key
+          } List (if one exists), or
+          # 4. As an alias to the 'id' field on the ${this.key} List.
+          _label_: String
+          ${fieldSchemas}
+        }
+      `);
+    }
 
     if (this.acl.read) {
       types.push(`
@@ -299,8 +302,8 @@ createdAt_DESC
         ): [${this.key}]
 
         ${this.itemQueryName}(where: ${this.itemQueryName}WhereUniqueInput!): ${
-        this.key
-      }
+          this.key
+        }
 
         ${this.listQueryMetaName}(
           where: ${this.itemQueryName}WhereInput
@@ -517,6 +520,10 @@ createdAt_DESC
   }
 
   getAdminFieldResolvers() {
+    if (!this.acl.read) {
+      return {};
+    }
+
     const fieldResolvers = this.fields.filter(field => !!field.acl.read).reduce(
       (resolvers, field) => ({
         ...resolvers,

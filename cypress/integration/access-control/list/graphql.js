@@ -10,117 +10,167 @@ const usersByLevel = users.reduce(
   {},
 );
 
+const accessCombinations = [
+  { create: false, read: false, update: false, delete: false },
+  { create: true,  read: false, update: false, delete: false },
+  { create: false, read: true,  update: false, delete: false },
+  { create: true,  read: true,  update: false, delete: false },
+  { create: false, read: false, update: true,  delete: false },
+  { create: true,  read: false, update: true,  delete: false },
+  { create: false, read: true,  update: true,  delete: false },
+  { create: true,  read: true,  update: true,  delete: false },
+  { create: false, read: false, update: false, delete: true },
+  { create: true,  read: false, update: false, delete: true },
+  { create: false, read: true,  update: false, delete: true },
+  { create: true,  read: true,  update: false, delete: true },
+  { create: false, read: false, update: true,  delete: true },
+  { create: true,  read: false, update: true,  delete: true },
+  { create: false, read: true,  update: true,  delete: true },
+  { create: true,  read: true,  update: true,  delete: true },
+];
+
 describe('Access Control, List, GraphQL', () => {
-  describe('static configs', () => {
-    let queries;
-    let mutations;
-    let types;
+  let queries;
+  let mutations;
+  let types;
 
-    function sanityCheckGraphQL() {
-      // check to make sure we're not getting false positives
-      expect(types).include('User');
-      expect(queries).include('allUsers');
-      expect(mutations).include('createUser');
-    }
+  function sanityCheckGraphQL() {
+    // check to make sure we're not getting false positives
+    expect(types).include('User');
+    expect(queries).include('allUsers');
+    expect(mutations).include('createUser');
+  }
 
-    beforeEach(() => {
-      cy
-        .task('getProjectInfo', 'access-control')
-        .then(({ env: { PORT } }) => {
-          cy.loginToKeystone(usersByLevel['su'][0].email, usersByLevel['su'][0].password, PORT)
-            .then(() =>
-              // Check graphql types via introspection
-              cy.graphql_query(
-                `http://localhost:${PORT}/admin/api`,
-                `{
-                  __schema {
-                    types {
+  beforeEach(() => {
+    cy
+      .task('getProjectInfo', 'access-control')
+      .then(({ env: { PORT } }) => {
+        cy.loginToKeystone(usersByLevel['su'][0].email, usersByLevel['su'][0].password, PORT)
+          .then(() =>
+            // Check graphql types via introspection
+            cy.graphql_query(
+              `http://localhost:${PORT}/admin/api`,
+              `{
+                __schema {
+                  types {
+                    name
+                  }
+                  queryType {
+                    fields {
                       name
                     }
-                    queryType {
-                      fields {
-                        name
-                      }
-                    }
-                    mutationType {
-                      fields {
-                        name
-                      }
+                  }
+                  mutationType {
+                    fields {
+                      name
                     }
                   }
-                }`,
-              )
+                }
+              }`,
             )
-            .then(({ data: { __schema } }) => {
-              queries = __schema.queryType.fields.map(({ name }) => name);
-              mutations = __schema.mutationType.fields.map(({ name }) => name);
-              types = __schema.types.map(({ name }) => name);
-            });
-        });
+          )
+          .then(({ data: { __schema } }) => {
+            queries = __schema.queryType.fields.map(({ name }) => name);
+            mutations = __schema.mutationType.fields.map(({ name }) => name);
+            types = __schema.types.map(({ name }) => name);
+          });
+      });
+  });
+
+  function yesNo(truthy) {
+    return truthy ? 'Yes' : 'No';
+  }
+
+  function getStaticListName(access) {
+    return `${yesNo(access.create)}Create${yesNo(access.read)}Read${yesNo(access.update)}Update${yesNo(access.delete)}DeleteStaticList`;
+  }
+
+  function getDynamicListName(access) {
+    return `${yesNo(access.create)}Create${yesNo(access.read)}Read${yesNo(access.update)}Update${yesNo(access.delete)}DeleteDynamicList`;
+  }
+
+  describe('static', () => {
+
+    accessCombinations.forEach(access => {
+
+      it(JSON.stringify(access), () => {
+        sanityCheckGraphQL();
+
+        const name = getStaticListName(access);
+
+        // The type is used in all the queries and mutations as a return type
+        if (access.create || access.read || access.update || access.delete) {
+          expect(types, 'types').include(`${name}`);
+        } else {
+          expect(types, 'types').not.include(`${name}`);
+        }
+
+        // Filter types are only used when reading
+        if (access.read) {
+          expect(types, 'types').include(`${name}WhereInput`);
+          expect(types, 'types').include(`${name}WhereUniqueInput`);
+        } else {
+          expect(types, 'types').not.include(`${name}WhereInput`);
+          expect(types, 'types').not.include(`${name}WhereUniqueInput`);
+        }
+
+        // Queries are only accessible when reading
+        if (access.read) {
+          expect(queries, 'queries').include(`${name}`);
+          expect(queries, 'queries').include(`all${name}s`);
+          expect(queries, 'queries').include(`_all${name}sMeta`);
+        } else {
+          expect(queries, 'queries').not.include(`${name}`);
+          expect(queries, 'queries').not.include(`all${name}s`);
+          expect(queries, 'queries').not.include(`_all${name}sMeta`);
+        }
+
+        if (access.create) {
+          expect(mutations, 'mutations').include(`create${name}`);
+        } else {
+          expect(mutations, 'mutations').not.include(`create${name}`);
+        }
+
+        if (access.update) {
+          expect(mutations, 'mutations').include(`update${name}`);
+        } else {
+          expect(mutations, 'mutations').not.include(`update${name}`);
+        }
+
+        if (access.delete) {
+          expect(mutations, 'mutations').include(`delete${name}`);
+        } else {
+          expect(mutations, 'mutations').not.include(`delete${name}`);
+        }
+      });
+
     });
 
-    it('`{ create: true, read: true, update: true, delete: true }', () => {
-      sanityCheckGraphQL();
+  });
 
-      expect(types, 'types').include('YesCreateYesReadYesUpdateYesDeleteList');
-      expect(types, 'types').include('YesCreateYesReadYesUpdateYesDeleteListWhereInput');
-      expect(types, 'types').include('YesCreateYesReadYesUpdateYesDeleteListWhereUniqueInput');
+  describe('dynamic', () => {
+    accessCombinations.forEach(access => {
 
-      expect(queries, 'queries').include('YesCreateYesReadYesUpdateYesDeleteList');
-      expect(queries, 'queries').include('allYesCreateYesReadYesUpdateYesDeleteLists');
-      expect(queries, 'queries').include('_allYesCreateYesReadYesUpdateYesDeleteListsMeta');
+      it(`dynamic: ${JSON.stringify(access)}`, () => {
+        sanityCheckGraphQL();
 
-      expect(mutations, 'mutations').include('createYesCreateYesReadYesUpdateYesDeleteList');
-      expect(mutations, 'mutations').include('updateYesCreateYesReadYesUpdateYesDeleteList');
-      expect(mutations, 'mutations').include('deleteYesCreateYesReadYesUpdateYesDeleteList');
-    });
+        const name = getDynamicListName(access);
 
-    it('`{ create: false, read: true, update: true, delete: true }', () => {
-      sanityCheckGraphQL();
+        // All types, etc, are included when dynamic no matter the config (because
+        // it can't be resolved until runtime)
+        expect(types, 'types').include(`${name}`);
+        expect(types, 'types').include(`${name}WhereInput`);
+        expect(types, 'types').include(`${name}WhereUniqueInput`);
 
-      expect(types, 'types').include('NoCreateYesReadYesUpdateYesDeleteList');
-      expect(types, 'types').include('NoCreateYesReadYesUpdateYesDeleteListWhereInput');
-      expect(types, 'types').include('NoCreateYesReadYesUpdateYesDeleteListWhereUniqueInput');
+        expect(queries, 'queries').include(`${name}`);
+        expect(queries, 'queries').include(`all${name}s`);
+        expect(queries, 'queries').include(`_all${name}sMeta`);
 
-      expect(queries, 'queries').include('NoCreateYesReadYesUpdateYesDeleteList');
-      expect(queries, 'queries').include('allNoCreateYesReadYesUpdateYesDeleteLists');
-      expect(queries, 'queries').include('_allNoCreateYesReadYesUpdateYesDeleteListsMeta');
+        expect(mutations, 'mutations').include(`create${name}`);
+        expect(mutations, 'mutations').include(`update${name}`);
+        expect(mutations, 'mutations').include(`delete${name}`);
+      });
 
-      expect(mutations, 'mutations').not.include('createNoCreateYesReadYesUpdateYesDeleteList');
-      expect(mutations, 'mutations').include('updateNoCreateYesReadYesUpdateYesDeleteList');
-      expect(mutations, 'mutations').include('deleteNoCreateYesReadYesUpdateYesDeleteList');
-    });
-
-    it('`{ create: true, read: false, update: true, delete: true }', () => {
-      sanityCheckGraphQL();
-
-      expect(types, 'types').include('YesCreateNoReadYesUpdateYesDeleteList');
-      expect(types, 'types').not.include('YesCreateNoReadYesUpdateYesDeleteListWhereInput');
-      expect(types, 'types').not.include('YesCreateNoReadYesUpdateYesDeleteListWhereUniqueInput');
-
-      expect(queries, 'queries').not.include('YesCreateNoReadYesUpdateYesDeleteList');
-      expect(queries, 'queries').not.include('allYesCreateNoReadYesUpdateYesDeleteLists');
-      expect(queries, 'queries').not.include('_allYesCreateNoReadYesUpdateYesDeleteListsMeta');
-
-      expect(mutations, 'mutations').include('createYesCreateNoReadYesUpdateYesDeleteList');
-      expect(mutations, 'mutations').include('updateYesCreateNoReadYesUpdateYesDeleteList');
-      expect(mutations, 'mutations').include('deleteYesCreateNoReadYesUpdateYesDeleteList');
-    });
-
-    it('`{ create: false, read: false, update: true, delete: true }', () => {
-      sanityCheckGraphQL();
-
-      expect(types, 'types').include('NoCreateNoReadYesUpdateYesDeleteList');
-      expect(types, 'types').not.include('NoCreateNoReadYesUpdateYesDeleteListWhereInput');
-      expect(types, 'types').not.include('NoCreateNoReadYesUpdateYesDeleteListWhereUniqueInput');
-
-      expect(queries, 'queries').not.include('NoCreateNoReadYesUpdateYesDeleteList');
-      expect(queries, 'queries').not.include('allNoCreateNoReadYesUpdateYesDeleteLists');
-      expect(queries, 'queries').not.include('_allNoCreateNoReadYesUpdateYesDeleteListsMeta');
-
-      expect(mutations, 'mutations').not.include('createNoCreateNoReadYesUpdateYesDeleteList');
-      expect(mutations, 'mutations').include('updateNoCreateNoReadYesUpdateYesDeleteList');
-      expect(mutations, 'mutations').include('deleteNoCreateNoReadYesUpdateYesDeleteList');
     });
   });
 

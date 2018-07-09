@@ -35,53 +35,70 @@ keystone.createList('User', {
   },
 });
 
-keystone.createList('NoCreateNoReadYesUpdateYesDeleteList', {
-  fields: {
-    foo: { type: Text },
-  },
-  access: {
-    create: false,
-    read: false,
-    update: true,
-    delete: true,
-  },
-});
+function yesNo(truthy) {
+  return truthy ? 'Yes' : 'No';
+}
 
-keystone.createList('NoCreateYesReadYesUpdateYesDeleteList', {
-  fields: {
-    foo: { type: Text },
-  },
-  access: {
-    create: false,
-    read: true,
-    update: true,
-    delete: true,
-  },
-});
+function createListWithStaticAccess(access) {
+  const name = `${yesNo(access.create)}Create${yesNo(access.read)}Read${yesNo(access.update)}Update${yesNo(access.delete)}DeleteStaticList`;
+  keystone.createList(name, {
+    fields: {
+      foo: { type: Text },
+    },
+    access,
+  });
+}
 
-keystone.createList('YesCreateNoReadYesUpdateYesDeleteList', {
-  fields: {
-    foo: { type: Text },
-  },
-  access: {
-    create: true,
-    read: false,
-    update: true,
-    delete: true,
-  },
-});
+function createListWithDynamicAccess(access) {
+  const name = `${yesNo(access.create)}Create${yesNo(access.read)}Read${yesNo(access.update)}Update${yesNo(access.delete)}DeleteDynamicList`;
+  keystone.createList(name, {
+    fields: {
+      foo: { type: Text },
+    },
+    access: {
+      create: () => access.create,
+      read: () => access.read,
+      update: () => access.update,
+      delete: () => access.delete,
+    }
+  });
+}
 
-keystone.createList('YesCreateYesReadYesUpdateYesDeleteList', {
-  fields: {
-    foo: { type: Text },
-  },
-  access: {
-    create: true,
-    read: true,
-    update: true,
-    delete: true,
-  },
-});
+/* Generated with:
+const result = [];
+const options = ['create', 'read', 'update', 'delete'];
+// All possible combinations are contained in the set 0..2^n-1
+for(let flags = 0; flags < Math.pow(2, options.length); flags++) {
+  // Generate an object of true/false values for the particular combination
+  result.push(options.reduce((memo, option, index) => ({
+    ...memo,
+    // Use a bit mask to see if that bit is set
+    [option]: !!(flags & (1 << index)),
+  }), {}));
+}
+*/
+// prettier-ignore
+const listAccessVariations = [
+  { create: false, read: false, update: false, delete: false },
+  { create: true,  read: false, update: false, delete: false },
+  { create: false, read: true,  update: false, delete: false },
+  { create: true,  read: true,  update: false, delete: false },
+  { create: false, read: false, update: true,  delete: false },
+  { create: true,  read: false, update: true,  delete: false },
+  { create: false, read: true,  update: true,  delete: false },
+  { create: true,  read: true,  update: true,  delete: false },
+  { create: false, read: false, update: false, delete: true },
+  { create: true,  read: false, update: false, delete: true },
+  { create: false, read: true,  update: false, delete: true },
+  { create: true,  read: true,  update: false, delete: true },
+  { create: false, read: false, update: true,  delete: true },
+  { create: true,  read: false, update: true,  delete: true },
+  { create: false, read: true,  update: true,  delete: true },
+  { create: true,  read: true,  update: true,  delete: true },
+];
+
+listAccessVariations.forEach(createListWithStaticAccess);
+listAccessVariations.forEach(createListWithDynamicAccess);
 
 keystone.createList('Post', {
   fields: {

@@ -93,11 +93,12 @@ module.exports = class Keystone {
     let listTypes = flatten(
       this.listsArray.map(list => list.getAdminGraphqlTypes())
     ).map(trim);
+
     listTypes.push(`
       type _QueryMeta {
         count: Int
       }
-      `);
+    `);
 
     // Fields can be represented multiple times within and between lists.
     // If a field defines a `getGraphqlAuxiliaryTypes()` method, it will be
