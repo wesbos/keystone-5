@@ -1,44 +1,29 @@
 module.exports = {
   User: [
     {
-      name: 'Ticiana',
       email: 'ticiana@keystonejs.com',
       password: 'correct',
       level: 'su',
-      internal: 'abc',
-      posts: { where: { title: 'Hello' } },
     },
     {
-      name: 'Boris Bozic',
       email: 'boris@keystonejs.com',
       password: 'battery',
       level: 'admin',
-      internal: 'def',
-      posts: { where: { title: 'Hellwhoa' } },
     },
     {
-      name: 'Jed Watson',
       email: 'jed@keystonejs.com',
       password: 'horse',
       level: 'editor',
-      internal: 'ghi',
-      posts: { where: { title: 'Aloha' } },
     },
     {
-      name: 'John Molomby',
       email: 'john@keystonejs.com',
       password: 'staple',
       level: 'writer',
-      internal: 'jkl',
-      posts: { where: { title: 'Salut' } },
     },
     {
-      name: 'Jess Telford',
       email: 'jess@keystonejs.com',
       password: 'xkcd',
       level: 'reader',
-      internal: 'mno',
-      posts: [{ where: { title: 'Bonjour' } }, { where: { title: "G'day" } }],
     },
   ],
 

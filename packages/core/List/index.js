@@ -200,7 +200,7 @@ module.exports = class List {
       .filter(Boolean)
       .join('\n\n        ');
 
-    return [
+    const types = [
       `
       type ${this.key} {
         id: String
@@ -219,30 +219,41 @@ module.exports = class List {
       `,
       // TODO: AND / OR filters:
       // https://github.com/opencrud/opencrud/blob/master/spec/2-relational/2-2-queries/2-2-3-filters.md#boolean-expressions
-      `
-      input ${this.itemQueryName}WhereInput {
-        id: ID
-        id_not: ID
-        ${queryArgs}
-      }
-      `,
-      `
-      input ${this.itemQueryName}WhereUniqueInput {
-        id: ID!
-      }
-      `,
-      `
-      input ${this.key}UpdateInput {
-        ${updateArgs}
-      }
-      `,
-      `
-      input ${this.key}CreateInput {
-        ${createArgs}
-      }
-      `,
       ...fieldTypes,
     ];
+
+    if (this.acl.read) {
+      types.push(`
+        input ${this.itemQueryName}WhereInput {
+          id: ID
+          id_not: ID
+          ${queryArgs}
+        }
+      `);
+      types.push(`
+        input ${this.itemQueryName}WhereUniqueInput {
+          id: ID!
+        }
+      `);
+    }
+
+    if (this.acl.update) {
+      types.push(`
+        input ${this.key}UpdateInput {
+          ${updateArgs}
+        }
+      `);
+    }
+
+    if (this.acl.create) {
+      types.push(`
+        input ${this.key}CreateInput {
+          ${createArgs}
+        }
+      `);
+    }
+
+    return types;
   }
 
   getAdminGraphqlQueries() {
@@ -558,7 +569,7 @@ createdAt_DESC
     if (this.acl.create) {
       mutations.push(`
         ${this.createMutationName}(
-          data: ${this.key}UpdateInput
+          data: ${this.key}CreateInput
         ): ${this.key}
       `);
     }
@@ -578,6 +589,8 @@ createdAt_DESC
           id: String!
         ): ${this.key}
       `);
+
+      // TODO: FIXME? Should this return an array of items?
       mutations.push(`
         ${this.deleteManyMutationName}(
           ids: [String!]

@@ -20,66 +20,66 @@ const authStrategy = keystone.createAuthStrategy({
 
 keystone.createList('User', {
   fields: {
-    name: {
-      type: Text,
-      access: {
-        create: true,
-        read: true,
-        update: true,
-        delete: true,
-      },
-    },
     email: {
       type: Text,
-      access: {
-        create: true,
-        read: true,
-        update: true,
-        delete: true,
-      },
     },
     password: {
       type: Password,
-      access: {
-        create: true,
-        read: true,
-        update: true,
-        delete: true,
-      },
-    },
-    posts: {
-      type: Relationship,
-      ref: 'Post',
-      many: true,
-      access: {
-        create: true,
-        read: true,
-        update: true,
-        delete: true,
-      },
-    },
-    internal: {
-      type: Text,
-      access: {
-        // Some super secret thing - never available in the app
-        create: true,
-        read: true,
-        update: true,
-        delete: true,
-      },
     },
     // Normally users might be multiple of each of these, but for demo purposes
     // we assume they can only be one at a time.
     level: {
       type: Select,
       options: ['su', 'admin', 'editor', 'writer', 'reader'],
-      access: {
-        create: true,
-        read: true,
-        update: true,
-        delete: true,
-      },
     },
+  },
+});
+
+keystone.createList('NoCreateNoReadYesUpdateYesDeleteList', {
+  fields: {
+    foo: { type: Text },
+  },
+  access: {
+    create: false,
+    read: false,
+    update: true,
+    delete: true,
+  },
+});
+
+keystone.createList('NoCreateYesReadYesUpdateYesDeleteList', {
+  fields: {
+    foo: { type: Text },
+  },
+  access: {
+    create: false,
+    read: true,
+    update: true,
+    delete: true,
+  },
+});
+
+keystone.createList('YesCreateNoReadYesUpdateYesDeleteList', {
+  fields: {
+    foo: { type: Text },
+  },
+  access: {
+    create: true,
+    read: false,
+    update: true,
+    delete: true,
+  },
+});
+
+keystone.createList('YesCreateYesReadYesUpdateYesDeleteList', {
+  fields: {
+    foo: { type: Text },
+  },
+  access: {
+    create: true,
+    read: true,
+    update: true,
+    delete: true,
   },
 });
 
