@@ -343,24 +343,26 @@ class ListPage extends Component {
 
     const managementUI = (
       <FlexGroup align="center">
-        <IconButton
+        {list.acl.update ? <IconButton
           appearance="primary"
           icon={SettingsIcon}
           isDisabled={!hasSelected}
           onClick={this.openUpdateModal}
           variant="ghost"
+          data-test-name="update"
         >
           Update
-        </IconButton>
-        <IconButton
+        </IconButton> : null}
+        {list.acl.delete ? <IconButton
           appearance="danger"
           icon={TrashcanIcon}
           isDisabled={!hasSelected}
           onClick={this.openDeleteSelectedItemsModal}
           variant="ghost"
+          data-test-name="delete"
         >
           Delete
-        </IconButton>
+        </IconButton> : null}
         <Button
           innerRef={this.getManageCancel}
           onClick={this.toggleManaging}
@@ -378,6 +380,7 @@ class ListPage extends Component {
           onClick={this.toggleManaging}
           variant="ghost"
           style={{ marginRight: '0.5em' }}
+          data-test-name="manage"
         >
           Manage
         </IconButton>
@@ -548,13 +551,13 @@ class ListPage extends Component {
                     </Popout>
                     {this.renderExpandButton()}
                     <FilterSeparator />
-                    <IconButton
+                    {list.acl.create ? <IconButton
                       appearance="create"
                       icon={PlusIcon}
                       onClick={this.openCreateModal}
                     >
                       Create
-                    </IconButton>
+                    </IconButton> : null}
                   </FlexGroup>
 
                   {this.renderPaginationOrManage()}

@@ -30,6 +30,9 @@ const labelToPath = str =>
 
 const labelToClass = str => str.replace(/\s+/g, '');
 
+const mapKeys = (obj, func) =>
+  Object.entries(obj).reduce((memo, [key, value]) => ({ ...memo, [key]: func(value, key, obj) }), {});
+
 function getIdQueryConditions(args) {
   const conditions = [];
   if (!args) {
@@ -139,7 +142,9 @@ module.exports = class List {
   getAdminMeta() {
     return {
       key: this.key,
-      acl: this.acl,
+      // Reduce to truthy values (functions can't be passed over the webpack
+      // boundary)
+      acl: mapKeys(this.acl, val => !!val),
       label: this.label,
       singular: this.singular,
       plural: this.plural,

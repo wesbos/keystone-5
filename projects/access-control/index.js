@@ -64,6 +64,29 @@ function createListWithDynamicAccess(access) {
   });
 }
 
+function createListWithDynamicAccessForAdminOnly(access) {
+  const name = `${yesNo(access.create)}Create${yesNo(access.read)}Read${yesNo(access.update)}Update${yesNo(access.delete)}DeleteDynamicForAdminOnlyList`;
+  keystone.createList(name, {
+    fields: {
+      foo: { type: Text },
+    },
+    access: {
+      create: ({ authentication: { item, listKey } }) => (
+        access.create && listKey === 'User' && ['su', 'admin'].includes(item.level)
+      ),
+      read: ({ authentication: { item, listKey } }) => (
+        access.read && listKey === 'User' && ['su', 'admin'].includes(item.level)
+      ),
+      update: ({ authentication: { item, listKey } }) => (
+        access.update && listKey === 'User' && ['su', 'admin'].includes(item.level)
+      ),
+      delete: ({ authentication: { item, listKey } }) => (
+        access.delete && listKey === 'User' && ['su', 'admin'].includes(item.level)
+      ),
+    }
+  });
+}
+
 /* Generated with:
 const result = [];
 const options = ['create', 'read', 'update', 'delete'];
@@ -99,6 +122,7 @@ const listAccessVariations = [
 
 listAccessVariations.forEach(createListWithStaticAccess);
 listAccessVariations.forEach(createListWithDynamicAccess);
+listAccessVariations.forEach(createListWithDynamicAccessForAdminOnly);
 
 keystone.createList('Post', {
   fields: {

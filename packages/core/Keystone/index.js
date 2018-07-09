@@ -77,11 +77,18 @@ module.exports = class Keystone {
   getAdminMeta() {
     const { name } = this.config;
     const lists = this.listsArray.reduce((acc, list) => {
-      // If it's possible to read or create, we need to include the list
-      // Otherwise, it doesn't matter if it's able to be updated or deleted,
-      // those actions can't be done in the Admin UI without also having `read`
-      // permissions
-      if (list.acl.read || list.acl.create) {
+      // We've consciously made a design choice that the `read` permission on a
+      // list is a master switch in the Admin UI (not the GraphQL API).
+      // Justification: If you want to Create without the Read permission, you
+      // technically don't have permission to read the result of your creation.
+      // If you want to Update an item, you can't see what the current values
+      // are. If you want to delete an item, you'd need to be given direct
+      // access to it (direct URI), but can't see anything about that item. And
+      // in fact, being able to load a page with a 'delete' button on it
+      // violates the read permission as it leaks the fact that item exists.
+      // In all these cases, the Admin UI becomes unnecessarily complex.
+      // So we only allow all these actions if you also have read access.
+      if (list.acl.read) {
         acc[list.key] = list.getAdminMeta();
       }
       return acc;

@@ -70,36 +70,41 @@ Cypress.Commands.add('upload_file', (selector, fileUrl, type = '') =>
   )
 );
 
-Cypress.Commands.add('graphql_query', (uri, queryString) => {
-  // Convert the string to an ast
-  const query = gql(queryString);
+function graphqlOperation(type) {
+  return function(uri, operationString) {
+    // Convert the string to an ast
+    const operation = gql(operationString);
 
-  // Then pass it through to the window context for execution.
-  // Why execute it from the window context? Because that's where the cookies,
-  // etc, are.
-  // Why not read the cookies, and execute it from within the test? Because
-  // the cookies are HTTP-only, so they're not accessible via JavaScript.
-  return cy.window()
-    .then(win =>
-      // NOTE: __APOLLO_CLIENT__ is only available in dev mode
-      // (process.env.NODE_ENV !== 'production'), so this may error at some
-      // point. If so, we need another way of attaching a global graphql query
-      // lib to the window from within the app for testing.
-      // eslint-disable-next-line no-underscore-dangle
-      win.__APOLLO_CLIENT__.query({ query })
-        .then(result => {
-          console.log('Fetched data:', result);
-          return result;
-        }).catch(error => {
-          console.error('Query error:', error);
-          if (error.graphQLErrors) {
-            return { errors: error.graphQLErrors };
-          } else {
-            return { errors: [error] };
-          }
-        })
-    );
-});
+    // Then pass it through to the window context for execution.
+    // Why execute it from the window context? Because that's where the cookies,
+    // etc, are.
+    // Why not read the cookies, and execute it from within the test? Because
+    // the cookies are HTTP-only, so they're not accessible via JavaScript.
+    return cy.window()
+      .then(win =>
+        // NOTE: __APOLLO_CLIENT__ is only available in dev mode
+        // (process.env.NODE_ENV !== 'production'), so this may error at some
+        // point. If so, we need another way of attaching a global graphql query
+        // lib to the window from within the app for testing.
+        // eslint-disable-next-line no-underscore-dangle
+        win.__APOLLO_CLIENT__[type]({ [type === 'mutate' ? 'mutation' : type]: operation })
+          .then(result => {
+            console.log('Fetched data:', result);
+            return result;
+          }).catch(error => {
+            console.error(`${type} error:`, error);
+            if (error.graphQLErrors) {
+              return { errors: error.graphQLErrors };
+            } else {
+              return { errors: [error] };
+            }
+          })
+      );
+  };
+};
+
+Cypress.Commands.add('graphql_query', graphqlOperation('query'));
+Cypress.Commands.add('graphql_mutate', graphqlOperation('mutate'));
 
 Cypress.Commands.add('loginToKeystone', (email, password, PORT) => {
   cy.visit(`http://localhost:${PORT}/admin`);

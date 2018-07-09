@@ -1,4 +1,11 @@
-module.exports = {
+const {
+  accessCombinations,
+  getStaticListName,
+  getDynamicListName,
+  getDynamicForAdminOnlyListName,
+} = require('../../cypress/integration/access-control/util');
+
+module.exports = Object.assign({
   User: [
     {
       email: 'ticiana@keystonejs.com',
@@ -82,4 +89,14 @@ module.exports = {
       action: 'create',
     },
   ],
-};
+},
+// ensure every list has at least some data
+accessCombinations.reduce(
+  (memo, access) => Object.assign(memo, {
+    [getStaticListName(access)]: [{ foo: 'Hello' }, { foo: 'Hi' }],
+    [getDynamicListName(access)]: [{ foo: 'Hello' }, { foo: 'Hi' }],
+    [getDynamicForAdminOnlyListName(access)]: [{ foo: 'Hello' }, { foo: 'Hi' }],
+  }),
+  {}
+),
+);
