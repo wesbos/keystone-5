@@ -102,8 +102,16 @@ module.exports = class Keystone {
     ).map(trim);
 
     listTypes.push(`
+      type _ListAccess {
+        create: Boolean
+        read: Boolean
+        update: Boolean
+        delete: Boolean
+      }
+
       type _QueryMeta {
         count: Int
+        access: _ListAccess
       }
     `);
 
@@ -132,6 +140,13 @@ module.exports = class Keystone {
         ${mutations.join('')}
       }
     `;
+
+    const metaResolver = {
+      // meta is passed in from the list's resolver (eg; '_allUsersMeta')
+      count: meta => meta.getCount(),
+      access: meta => meta.getAccess(),
+    };
+
     if (debugGraphQLSchemas()) {
       console.log(typeDefs);
       listTypes.forEach(i => console.log(i));
@@ -153,6 +168,7 @@ module.exports = class Keystone {
         }),
         {}
       ),
+      _QueryMeta: metaResolver,
       Query: {
         // Order is also important here, any TypeQuery's defined by types
         // shouldn't be able to override list-level queries

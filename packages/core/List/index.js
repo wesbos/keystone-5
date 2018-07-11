@@ -367,34 +367,44 @@ createdAt_DESC
         },
 
         [this.listQueryMetaName]: (_, args, { authedItem, authedListKey }) => {
-          if (
-            !checkAccess({
-              access: this.acl.read,
-              dynamicCheckData: () => ({
-                where: args,
-                authentication: {
-                  item: authedItem,
-                  listKey: authedListKey,
-                },
-              }),
-            })
-          ) {
-            // If the client handles errors correctly, it should be able to
-            // receive partial data (for the fields the user has access to),
-            // and then an `errors` array of AccessDeniedError's
-            throw new AccessDeniedError({
-              data: {
-                type: 'query',
-                name: this.listQueryMetaName,
-              },
-              internalData: {
-                authedId: authedItem && authedItem.id,
-                authedListKey: authedListKey,
-              },
-            });
-          }
+          const dynamicCheckData = () => ({
+            where: args,
+            authentication: {
+              item: authedItem,
+              listKey: authedListKey,
+            },
+          });
 
-          return this.itemsQueryMeta(args);
+          return {
+            // Return these as functions so they're lazily evaluated depending
+            // on what the user requested
+            // Evalutation takes place in ../Keystone/index.js
+            getCount: () => {
+              if (!checkAccess({ access: this.acl.read, dynamicCheckData })) {
+                // If the client handles errors correctly, it should be able to
+                // receive partial data (for the fields the user has access to),
+                // and then an `errors` array of AccessDeniedError's
+                throw new AccessDeniedError({
+                  data: {
+                    type: 'query',
+                    name: this.listQueryMetaName,
+                  },
+                  internalData: {
+                    authedId: authedItem && authedItem.id,
+                    authedListKey: authedListKey,
+                  },
+                });
+              }
+              return this.itemsQueryMeta(args).then(({ count }) => count);
+            },
+
+            getAccess: () => ({
+              create: checkAccess({ access: this.acl.create, dynamicCheckData }),
+              read: checkAccess({ access: this.acl.read, dynamicCheckData }),
+              update: checkAccess({ access: this.acl.update, dynamicCheckData }),
+              delete: checkAccess({ access: this.acl.delete, dynamicCheckData }),
+            }),
+          };
         },
 
         [this.itemQueryName]: (
