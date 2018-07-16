@@ -57,26 +57,26 @@ module.exports = {
   ],
 
   stayLoggedIn(level, onLogin = ident) {
-    before(() => {
+    before(() =>
       cy
         .task('getProjectInfo', 'access-control')
         .then(({ env: { PORT } }) =>
           cy.loginToKeystone(usersByLevel()[level][0].email, usersByLevel()[level][0].password, PORT)
             .then(() => onLogin({ PORT }))
-        );
-    });
+        )
+    );
 
-    beforeEach(() => {
+    beforeEach(() =>
       // For each of the tests, ensure we stay logged in
-      Cypress.Cookies.preserveOnce('keystone-admin.sid');
-    });
+      Cypress.Cookies.preserveOnce('keystone-admin.sid')
+    );
 
-    after(() => {
+    after(() =>
       // Cypress claims to clear cookies before each test, but it appears that
       // the first test in the next describe block will continue to retain
       // cookies from the `preserveOnce` call above. So we manually clear them
       // now to avoid that.
-      cy.clearCookies();
-    });
+      cy.clearCookies()
+    );
   }
 };

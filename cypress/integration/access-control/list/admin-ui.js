@@ -358,7 +358,7 @@ describe('Access Control Lists > Admin UI', () => {
 
     });
 
-    describe.only('static', () => {
+    describe('static', () => {
       stayLoggedIn('su');
 
       // NOTE: We only check lists that are readable as we've checked that
@@ -393,21 +393,9 @@ describe('Access Control Lists > Admin UI', () => {
                 )
                 .then(({ data }) => {
                   cy.visit(`http://localhost:${PORT}/admin/${slug}/${data[queryName][0].id}`);
+                  // TODO: Check for "Save Changes" & "Reset Changes" buttons
 
-                  return Promise.all(
-                    Object.entries(listFields[name])
-                      // Ignore the non-editable types
-                      .filter(([ field ]) => !['id', '_label_'].includes(field))
-                      .map(([ field ]) => {
-                        cy.get(`label[for="ks-input-${field}"]`).should('exist')
-                          .then(() =>
-                            cy.get(`#ks-input-${field}`).should('exist')
-                          )
-                      })
-                  );
                 })
-
-                // TODO: Check for "Save Changes" & "Reset Changes" buttons
             );
         });
       });
@@ -443,23 +431,10 @@ describe('Access Control Lists > Admin UI', () => {
                 )
                 .then(({ data }) => {
                   cy.visit(`http://localhost:${PORT}/admin/${slug}/${data[queryName][0].id}`);
+                  // TODO: Check for "Save Changes" & "Reset Changes" buttons
 
-                  return Promise.all(
-                    Object.entries(listFields[name])
-                      // Ignore the non-editable types
-                      .filter(([ field ]) => !['id', '_label_'].includes(field))
-                      .map(([ field ]) => {
-                        cy.get(`label[for="ks-input-${field}"]`).should('exist')
-                          .then(() =>
-                            cy.get(`#ks-input-${field}`).should('not.exist')
-                          )
-                      }
-                  )
-                );
                 })
             );
-
-            // TODO: Check for "Save Changes" & "Reset Changes" buttons
         });
       });
     });

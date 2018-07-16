@@ -3002,6 +3002,10 @@ extsprintf@^1.2.0:
   version "1.4.0"
   resolved "https://registry.yarnpkg.com/extsprintf/-/extsprintf-1.4.0.tgz#e2689f8f356fad62cca65a3a91c5df5f9551692f"
 
+"falsey@^1.0.0":
+  version "1.0.0"
+  resolved "https://registry.yarnpkg.com/falsey/-/falsey-1.0.0.tgz#71bdd775c24edad9f2f5c015ce8be24400bb5d7d"
+
 fast-deep-equal@^1.0.0:
   version "1.1.0"
   resolved "https://registry.yarnpkg.com/fast-deep-equal/-/fast-deep-equal-1.1.0.tgz#c053477817c86b51daa853c81e059b733d023614"
@@ -5728,9 +5732,9 @@ pino-std-serializers@^2.0.0:
   version "2.1.0"
   resolved "https://registry.yarnpkg.com/pino-std-serializers/-/pino-std-serializers-2.1.0.tgz#01953dcaecd5f43b331ecf2e312a49c9fd64851c"
 
-pino@5.0.0-rc.3:
-  version "5.0.0-rc.3"
-  resolved "https://registry.yarnpkg.com/pino/-/pino-5.0.0-rc.3.tgz#3ea2c1721466216a456ea888a2f8f3976669ca45"
+pino@5.0.0-rc.4:
+  version "5.0.0-rc.4"
+  resolved "https://registry.yarnpkg.com/pino/-/pino-5.0.0-rc.4.tgz#33f669a98972bdf6666508888d08a891841f6c3b"
   dependencies:
     fast-json-parse "^1.0.3"
     fast-redact "^1.1.13"
@@ -5738,7 +5742,7 @@ pino@5.0.0-rc.3:
     flatstr "^1.0.5"
     pino-std-serializers "^2.0.0"
     pump "^3.0.0"
-    quick-format-unescaped "^2.0.1"
+    quick-format-unescaped "^3.0.0"
     sonic-boom "^0.5.0"
 
 pkg-dir@^2.0.0:
@@ -5991,9 +5995,9 @@ querystring@0.2.0:
   version "0.2.0"
   resolved "https://registry.yarnpkg.com/querystring/-/querystring-0.2.0.tgz#b209849203bb25df820da756e747005878521620"
 
-quick-format-unescaped@^2.0.1:
-  version "2.0.1"
-  resolved "https://registry.yarnpkg.com/quick-format-unescaped/-/quick-format-unescaped-2.0.1.tgz#3fabe3cef101ab42d585f84a75088bcef1aa73ba"
+quick-format-unescaped@^3.0.0:
+  version "3.0.0"
+  resolved "https://registry.yarnpkg.com/quick-format-unescaped/-/quick-format-unescaped-3.0.0.tgz#21e7fdc5b08b079ef71ed0728ed0725e58671e41"
 
 raf-schd@^2.1.1:
   version "2.1.1"

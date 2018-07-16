@@ -87,6 +87,7 @@ module.exports = class List {
     this.itemQueryName = itemQueryName;
     this.listQueryName = `all${listQueryName}`;
     this.listQueryMetaName = `_${this.listQueryName}Meta`;
+    this.listMetaName = `_${listQueryName}Meta`;
     this.authenticatedQueryName = `authenticated${itemQueryName}`;
     this.deleteMutationName = `delete${itemQueryName}`;
     this.deleteManyMutationName = `delete${listQueryName}`;
@@ -151,6 +152,7 @@ module.exports = class List {
       path: this.path,
       listQueryName: this.listQueryName,
       listQueryMetaName: this.listQueryMetaName,
+      listMetaName: this.listMetaName,
       itemQueryName: this.itemQueryName,
       createMutationName: this.createMutationName,
       updateMutationName: this.updateMutationName,
@@ -165,7 +167,7 @@ module.exports = class List {
       // If it's globally set to false, makes sense to never show it
       .filter(field => !!field.acl.read)
       .map(field => field.getGraphqlSchema())
-      .join('\n        ');
+      .join('\n          ');
 
     const fieldTypes = this.fields
       .map(i => i.getGraphqlAuxiliaryTypes())
@@ -176,15 +178,15 @@ module.exports = class List {
       .filter(field => !!field.acl.update)
       .map(field => field.getGraphqlUpdateArgs())
       .filter(i => i)
-      .map(i => i.split(/\n\s+/g).join('\n        '))
-      .join('\n        ')
+      .map(i => i.split(/\n\s+/g).join('\n          '))
+      .join('\n          ')
       .trim();
 
     const createArgs = this.fields
       .map(i => i.getGraphqlCreateArgs())
       .filter(i => i)
-      .map(i => i.split(/\n\s+/g).join('\n        '))
-      .join('\n        ')
+      .map(i => i.split(/\n\s+/g).join('\n          '))
+      .join('\n          ')
       .trim();
 
     const queryArgs = this.fields
@@ -194,16 +196,16 @@ module.exports = class List {
         const fieldQueryArgs = field
           .getGraphqlQueryArgs()
           .split(/\n\s+/g)
-          .join('\n        ');
+          .join('\n          ');
 
         if (!fieldQueryArgs) {
           return null;
         }
 
-        return `# ${field.constructor.name} field\n        ${fieldQueryArgs}`;
+        return `# ${field.constructor.name} field\n          ${fieldQueryArgs}`;
       })
       .filter(Boolean)
-      .join('\n\n        ');
+      .join('\n\n          ');
 
     const types = [
       // TODO: AND / OR filters:
@@ -315,6 +317,8 @@ createdAt_DESC
 
           ${commonArgs.trim()}
         ): _QueryMeta
+
+        ${this.listMetaName}: _ListMeta
       `);
     }
 
@@ -397,7 +401,22 @@ createdAt_DESC
               }
               return this.itemsQueryMeta(args).then(({ count }) => count);
             },
+          };
+        },
 
+        [this.listMetaName]: (_, args, { authedItem, authedListKey }) => {
+          const dynamicCheckData = () => ({
+            where: args,
+            authentication: {
+              item: authedItem,
+              listKey: authedListKey,
+            },
+          });
+
+          return {
+            // Return these as functions so they're lazily evaluated depending
+            // on what the user requested
+            // Evalutation takes place in ../Keystone/index.js
             getAccess: () => ({
               create: checkAccess({ access: this.acl.create, dynamicCheckData }),
               read: checkAccess({ access: this.acl.read, dynamicCheckData }),

@@ -8,7 +8,8 @@
     "node": ">=8.4.0"
   },
   "scripts": {
-    "start": "node -r dotenv-safe/config index.js"
+    "start": "node -r dotenv-safe/config index.js",
+    "start:ci": "DISABLE_LOGGING=true NODE_ENV=test node -r dotenv-safe/config index.js"
   },
   "dependencies": {
     "@keystonejs/admin-ui": "^5.0.0",

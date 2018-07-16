@@ -205,49 +205,49 @@ test('getAdminGraphqlTypes()', () => {
   const types = list.getAdminGraphqlTypes();
 
   expect(types).toEqual([
-    `
-      type Test {
-        id: String
-        # This virtual field will be resolved in one of the following ways (in this order):
-        # 1. Execution of 'labelResolver' set on the Test List config, or
-        # 2. As an alias to the field set on 'labelField' in the Test List config, or
-        # 3. As an alias to a 'name' field on the Test List (if one exists), or
-        # 4. As an alias to the 'id' field on the Test List.
-        _label_: String
-        name_schema
-        email_schema
-      }
+      'name_types',
+      'email_types',
+      `
+        type Test {
+          id: String
+          # This virtual field will be resolved in one of the following ways (in this order):
+          # 1. Execution of 'labelResolver' set on the Test List config, or
+          # 2. As an alias to the field set on 'labelField' in the Test List config, or
+          # 3. As an alias to a 'name' field on the Test List (if one exists), or
+          # 4. As an alias to the 'id' field on the Test List.
+          _label_: String
+          name_schema
+          email_schema
+        }
       `,
-    `
-      input TestWhereInput {
-        id: ID
-        id_not: ID
-        # MockType field
-        name_query_args
+      `
+        input TestWhereInput {
+          id: ID
+          id_not: ID
+          # MockType field
+          name_query_args
 
-        # MockType field
-        email_query_args
-      }
+          # MockType field
+          email_query_args
+        }
       `,
-    `
-      input TestWhereUniqueInput {
-        id: ID!
-      }
+      `
+        input TestWhereUniqueInput {
+          id: ID!
+        }
       `,
-    `
-      input TestUpdateInput {
-        name_update_args
-        email_update_args
-      }
+      `
+        input TestUpdateInput {
+          name_update_args
+          email_update_args
+        }
       `,
-    `
-      input TestCreateInput {
-        name_create_args
-        email_create_args
-      }
+      `
+        input TestCreateInput {
+          name_create_args
+          email_create_args
+        }
       `,
-    'name_types',
-    'email_types',
   ]);
 });
 
@@ -285,6 +285,8 @@ test('getAdminGraphqlQueries()', () => {
           first: Int
           skip: Int
         ): _QueryMeta
+
+        _TestsMeta: _ListMeta
       `,
   ]);
 });
@@ -301,7 +303,7 @@ test('getAdminGraphqlMutations()', () => {
   expect(mutations).toEqual([
     `
         createTest(
-          data: TestUpdateInput
+          data: TestCreateInput
         ): Test
     `.trim(),
     `

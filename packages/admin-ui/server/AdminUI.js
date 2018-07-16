@@ -7,9 +7,8 @@ const webpackDevMiddleware = require('webpack-dev-middleware');
 const { graphqlExpress, graphiqlExpress } = require('apollo-server-express');
 const { formatError, isInstance: isApolloErrorInstance } = require('apollo-errors');
 const cuid = require('cuid');
-const pino = require('pino');
-
-const graphqlLogger = pino('graphql');
+const logger = require('@keystonejs/logger');
+const graphqlLogger = logger('graphql');
 
 const getWebpackConfig = require('./getWebpackConfig');
 

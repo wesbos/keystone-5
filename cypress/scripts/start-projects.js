@@ -5,7 +5,7 @@ const { getProjectsInfo } = require('./utils');
 const projects = getProjectsInfo();
 const commands = Object.keys(projects).map(project => {
   const { dir, envString } = projects[project];
-  return `cd ${dir} && ${envString ? `${envString} ` : ''}node index.js`;
+  return `cd ${dir} && NODE_ENV=test ${envString ? `${envString} ` : ''}node index.js`;
 });
 
 const names = Object.keys(projects);

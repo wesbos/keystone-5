@@ -109,9 +109,12 @@ module.exports = class Keystone {
         delete: Boolean
       }
 
+      type _ListMeta {
+        access: _ListAccess
+      }
+
       type _QueryMeta {
         count: Int
-        access: _ListAccess
       }
     `);
 
@@ -141,9 +144,13 @@ module.exports = class Keystone {
       }
     `;
 
-    const metaResolver = {
+    const queryMetaResolver = {
       // meta is passed in from the list's resolver (eg; '_allUsersMeta')
       count: meta => meta.getCount(),
+    };
+
+    const listMetaResolver = {
+      // meta is passed in from the list's resolver (eg; '_allUsersMeta')
       access: meta => meta.getAccess(),
     };
 
@@ -168,7 +175,8 @@ module.exports = class Keystone {
         }),
         {}
       ),
-      _QueryMeta: metaResolver,
+      _QueryMeta: queryMetaResolver,
+      _ListMeta: listMetaResolver,
       Query: {
         // Order is also important here, any TypeQuery's defined by types
         // shouldn't be able to override list-level queries
