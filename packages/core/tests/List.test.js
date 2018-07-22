@@ -66,7 +66,9 @@ const config = {
 
 function mockKeystone() {
   return {
-    defaultAccess: [],
+    config: {
+      defaultAccess: true,
+    },
     auth: {},
   };
 }

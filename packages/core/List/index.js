@@ -1,8 +1,10 @@
 const pluralize = require('pluralize');
 const {
-  parseACL,
+  parseListAccess,
   checkAccess,
   resolveAllKeys,
+  mergeWhereClause,
+  getType,
   pick,
 } = require('@keystonejs/utils');
 
@@ -73,16 +75,11 @@ module.exports = class List {
 
     this.adapter = adapter.newListAdapter(this.key, this.config);
 
-    const accessTypes = ['create', 'read', 'update', 'delete'];
-
-    // Starting with the default, extend it with any config passed in
-    this.acl = {
-      ...pick(keystone.defaultAccess, accessTypes),
-      ...parseACL(config.access, {
-        accessTypes,
-        listKey: key,
-      }),
-    };
+    this.access = parseListAccess({
+      listKey: key,
+      access: config.access,
+      defaultAccess: keystone.config.defaultAccess
+    });
 
     this.fieldsByPath = {};
     this.fields = config.fields
@@ -94,7 +91,7 @@ module.exports = class List {
             listKey: key,
             listAdapter: this.adapter,
             fieldAdapterClass: type.adapters[adapter.name],
-            defaultAccess: this.acl,
+            defaultAccess: keystone.config.defaultAccess,
           });
           return this.fieldsByPath[path];
         })
@@ -119,7 +116,7 @@ module.exports = class List {
       key: this.key,
       // Reduce to truthy values (functions can't be passed over the webpack
       // boundary)
-      acl: mapKeys(this.acl, val => !!val),
+      access: mapKeys(this.access, val => !!val),
       label: this.label,
       singular: this.singular,
       plural: this.plural,
@@ -139,7 +136,7 @@ module.exports = class List {
   getAdminGraphqlTypes() {
     const fieldSchemas = this.fields
       // If it's globally set to false, makes sense to never show it
-      .filter(field => !!field.acl.read)
+      .filter(field => !!field.access.read)
       .map(field => field.getGraphqlSchema())
       .join('\n          ');
 
@@ -149,7 +146,7 @@ module.exports = class List {
 
     const updateArgs = this.fields
       // If it's globally set to false, makes sense to never let it be updated
-      .filter(field => !!field.acl.update)
+      .filter(field => !!field.access.update)
       .map(field => field.getGraphqlUpdateArgs())
       .filter(i => i)
       .map(i => i.split(/\n\s+/g).join('\n          '))
@@ -165,7 +162,7 @@ module.exports = class List {
 
     const queryArgs = this.fields
       // If it's globally set to false, makes sense to never show it
-      .filter(field => !!field.acl.read)
+      .filter(field => !!field.access.read)
       .map(field => {
         const fieldQueryArgs = field
           .getGraphqlQueryArgs()
@@ -188,10 +185,10 @@ module.exports = class List {
     ];
 
     if (
-      this.acl.read ||
-      this.acl.create ||
-      this.acl.update ||
-      this.acl.delete
+      this.access.read ||
+      this.access.create ||
+      this.access.update ||
+      this.access.delete
     ) {
       // prettier-ignore
       types.push(`
@@ -208,7 +205,7 @@ module.exports = class List {
       `);
     }
 
-    if (this.acl.read) {
+    if (this.access.read) {
       types.push(`
         input ${this.itemQueryName}WhereInput {
           id: ID
@@ -223,7 +220,7 @@ module.exports = class List {
       `);
     }
 
-    if (this.acl.update) {
+    if (this.access.update) {
       types.push(`
         input ${this.key}UpdateInput {
           ${updateArgs}
@@ -231,7 +228,7 @@ module.exports = class List {
       `);
     }
 
-    if (this.acl.create) {
+    if (this.access.create) {
       types.push(`
         input ${this.key}CreateInput {
           ${createArgs}
@@ -259,7 +256,7 @@ module.exports = class List {
 
     // If `read` is either `true`, or a function (we don't care what the result
     // of the function is, that'll get executed at a later time)
-    if (this.acl.read) {
+    if (this.access.read) {
       // prettier-ignore
       queries.push(`
         ${this.listQueryName}(
@@ -293,23 +290,11 @@ module.exports = class List {
 
     // If set to false, we can confidently remove these resolvers entirely from
     // the graphql schema
-    if (this.acl.read) {
+    if (this.access.read) {
       resolvers = {
-        [this.listQueryName]: (...params) => {
-          const args = params[1];
-          const context = params[2];
-          if (
-            !checkAccess({
-              access: this.acl.read,
-              dynamicCheckData: () => ({
-                where: args,
-                authentication: {
-                  item: context.authedItem,
-                  listKey: context.authedListKey,
-                },
-              }),
-            })
-          ) {
+        [this.listQueryName]: (_, args, context) => {
+          const access = context.getAccessControl(this.key, 'read');
+          if (!access) {
             // If the client handles errors correctly, it should be able to
             // receive partial data (for the fields the user has access to),
             // and then an `errors` array of AccessDeniedError's
@@ -325,7 +310,8 @@ module.exports = class List {
             });
           }
 
-          return this.adapter.itemsQuery(args);
+          let queryArgs = mergeWhereClause(args, access);
+          return this.adapter.itemsQuery(queryArgs);
         },
 
         [this.listQueryMetaName]: (_, args, { authedItem, authedListKey }) => {
@@ -471,7 +457,7 @@ module.exports = class List {
         const originalResolver = originalResolvers[field.path];
 
         // The field isn't readable at all, so don't include it
-        if (!field.acl.read) {
+        if (!field.access.read) {
           return resolvers;
         }
 
@@ -519,11 +505,11 @@ module.exports = class List {
   }
 
   getAdminFieldResolvers() {
-    if (!this.acl.read) {
+    if (!this.access.read) {
       return {};
     }
 
-    const fieldResolvers = this.fields.filter(field => !!field.acl.read).reduce(
+    const fieldResolvers = this.fields.filter(field => !!field.access.read).reduce(
       (resolvers, field) => ({
         ...resolvers,
         ...field.getGraphqlFieldResolvers(),
@@ -572,7 +558,7 @@ module.exports = class List {
 
     // NOTE: We only check for truthy as it could be `true`, or a function (the
     // function is executed later in the resolver)
-    if (this.acl.create) {
+    if (this.access.create) {
       mutations.push(`
         ${this.createMutationName}(
           data: ${this.key}CreateInput
@@ -580,7 +566,7 @@ module.exports = class List {
       `);
     }
 
-    if (this.acl.update) {
+    if (this.access.update) {
       mutations.push(`
         ${this.updateMutationName}(
           id: String!
@@ -589,7 +575,7 @@ module.exports = class List {
       `);
     }
 
-    if (this.acl.delete) {
+    if (this.access.delete) {
       mutations.push(`
         ${this.deleteMutationName}(
           id: String!
@@ -697,7 +683,7 @@ module.exports = class List {
   getAdminMutationResolvers() {
     const mutationResolvers = {};
 
-    if (this.acl.create) {
+    if (this.access.create) {
       mutationResolvers[this.createMutationName] = async (
         _,
         { data },
@@ -742,7 +728,7 @@ module.exports = class List {
       };
     }
 
-    if (this.acl.update) {
+    if (this.access.update) {
       mutationResolvers[this.updateMutationName] = async (
         _,
         { id, data },
@@ -819,7 +805,7 @@ module.exports = class List {
       };
     }
 
-    if (this.acl.delete) {
+    if (this.access.delete) {
       mutationResolvers[this.deleteMutationName] = async (
         _,
         { id },
@@ -870,5 +856,9 @@ module.exports = class List {
     }
 
     return mutationResolvers;
+  }
+
+  describeAccessControl() {
+    return this.access;
   }
 };

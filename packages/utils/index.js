@@ -1,10 +1,11 @@
-const noop = () => {};
-
 const camelize = (exports.camelize = str =>
   str.replace(/(?:^\w|[A-Z]|\b\w|\s+)/g, (match, index) => {
     if (+match === 0) return '';
     return index == 0 ? match.toLowerCase() : match.toUpperCase();
   }));
+
+exports.getType = (thing) =>
+  Object.prototype.toString.call(thing).replace(/\[object (.*)\]/, '$1');
 
 exports.fixConfigKeys = (config, remapKeys = {}) => {
   const rtn = {};
@@ -37,73 +38,89 @@ exports.resolveAllKeys = obj => {
 exports.pick = (obj, keys) =>
   keys.reduce((result, key) => ({ ...result, [key]: obj[key] }), {});
 
-function typeOf(obj) {
-  return Object.prototype.toString.call(obj);
-}
+exports.parseListAccess = ({ listKey, access, defaultAccess }) => {
+  const accessTypes = ['create', 'read', 'update', 'delete'];
 
-function parseObjectToACL(obj, { accessTypes, listKey, path = '' }) {
-  return accessTypes.reduce((acl, type) => {
-    if (!obj.hasOwnProperty(type)) {
-      // Default to open access
-      acl[type] = true;
-    } else if (
-      ['[object Boolean]', '[object Function]'].indexOf(typeOf(obj[type])) !==
-      -1
-    ) {
-      acl[type] = obj[type];
-    } else {
-      throw new Error(
-        `Access type ${
-          listKey ? `for ${listKey}${path ? `.${path}` : ''}.` : ''
-        }access.${type} must be true/false, or a function.`
-      );
+  const getDefaults = () => {
+    return accessTypes.reduce(
+      (result, accessType) => ({
+        ...result,
+        [accessType]: defaultAccess,
+      }),
+      {},
+    );
+  };
+
+  const validateGranularConfigTypes = (longHandAccess) => {
+    const errors = Object.entries(longHandAccess)
+      .map(([accessType, accessConfig]) => {
+        const type = exports.getType(accessConfig);
+
+        if (accessType === 'create') {
+          if (!['Boolean', 'Function'].includes(type)) {
+            return `Expected a Boolean, or Function for ${listKey}.access.${accessType}, but got ${type}. (NOTE: 'create' cannot have a Declarative access control config)`;
+          }
+        } else {
+          if (!['Object', 'Boolean', 'Function'].includes(type)) {
+            return `Expected a Boolean, Object, or Function for ${listKey}.access.${accessType}, but got ${type}`;
+          }
+        }
+      })
+      .filter(error => !!error);
+
+    if (errors.length) {
+      throw new Error(errors.join('\n'));
     }
-    return acl;
-  }, {});
-}
+  };
 
-function parseFunctionToACL(func, types) {
-  return types.reduce(
-    (acl, type) => ({
-      ...acl,
-      [type]: func,
-    }),
-    {}
-  );
-}
+  const parseGranularAccessConfig = () => {
+    const longHandAccess = exports.pick(access, accessTypes);
 
-function parseBooleanToACL(bool, types) {
-  return types.reduce(
-    (acl, type) => ({
-      ...acl,
-      [type]: bool,
-    }),
-    {}
-  );
-}
+    // An object was supplied, but it has the wrong keys (it's probably a
+    // declarative access control config being used as a shorthand, which
+    // isn't possible [due to `create` not supporting declarative config])
+    if (Object.keys(longHandAccess).length === 0) {
+      throw new Error(`Must specify one of ${JSON.stringify(accessTypes)} access configs, but got ${JSON.stringify(Object.keys(access))}. (Did you mean to specify a declarative access control config? This can be done on a granular basis only)`);
+    }
 
-exports.parseACL = (obj, { accessTypes, listKey, path = '' }) => {
-  if (obj === undefined) {
-    // Default to full access when nothing set
-    return parseBooleanToACL(true, accessTypes);
-  }
+    validateGranularConfigTypes(longHandAccess);
 
-  switch (typeOf(obj)) {
-    case '[object Boolean]':
-      return parseBooleanToACL(obj, accessTypes);
-    case '[object Function]':
-      return parseFunctionToACL(obj, accessTypes);
-    case '[object Object]':
-      return parseObjectToACL(obj, { accessTypes, listKey, path });
+    // Construct an object with all keys
+    return {
+      ...getDefaults(),
+      ...longHandAccess,
+    };
+  };
+
+  switch (exports.getType(access)) {
+    case 'Boolean':
+    case 'Function':
+      return {
+        create: access,
+        read: access,
+        update: access,
+        delete: access,
+      };
+
+    case 'Object':
+      return parseGranularAccessConfig();
+
     default:
-      throw new Error(
-        `Access type ${
-          listKey ? `for ${listKey}${path ? `.${path}` : ''}` : ''
-        } must be true/false, a function, or an Object.`
-      );
+      throw new Error('Shorthand list-level access must be specified as either a boolean or a function.');
   }
 };
 
-exports.checkAccess = ({ access, dynamicCheckData = noop } = {}) => {
-  return access && (typeof access !== 'function' || access(dynamicCheckData()));
+exports.mergeWhereClause = (args, where) => {
+  if (exports.getType(where) !== 'Object') {
+    return args;
+  }
+
+  // Access control is a where clause type
+  return {
+    ...args,
+    where: {
+      ...args.where,
+      where,
+    },
+  };
 };

@@ -1,5 +1,5 @@
 const inflection = require('inflection');
-const { parseACL, pick } = require('@keystonejs/utils');
+const { parseFieldAccess, pick } = require('@keystonejs/utils');
 
 class Field {
   constructor(
@@ -30,7 +30,7 @@ class Field {
     // Merge the default and config access together
     this.acl = {
       ...pick(defaultAccess, accessTypes),
-      ...parseACL(config.access, {
+      ...parseFieldAccess(config.access, {
         accessTypes,
         listKey,
         path,

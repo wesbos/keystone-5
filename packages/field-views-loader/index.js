@@ -8,7 +8,7 @@ module.exports = function() {
     {
       [listPath]: {  // e.g "User"
         ...
-        acl: { create, read, update, delete },
+        access: { create, read, update, delete },
         views: {
           [fieldPath]: {  // e.g 'email'
             Controller: 'absolute/path/to/controller',

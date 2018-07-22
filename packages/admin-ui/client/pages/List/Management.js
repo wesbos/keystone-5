@@ -60,7 +60,7 @@ export default class ListManage extends Component<Props, State> {
       <Fragment>
         <FlexGroup align="center">
           {ENABLE_DEV_FEATURES ? (
-            list.acl.update ? (
+            list.access.update ? (
               <IconButton
                 appearance="primary"
                 icon={SettingsIcon}
@@ -73,7 +73,7 @@ export default class ListManage extends Component<Props, State> {
               </IconButton>
             ) : null
           ) : null}
-          {list.acl.update ? (
+          {list.access.update ? (
             <IconButton
               appearance="danger"
               icon={TrashcanIcon}

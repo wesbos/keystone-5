@@ -342,7 +342,7 @@ class ListDetails extends Component<Props, State> {
             </Popout>
             {this.renderExpandButton()}
             <ToolbarSeparator />
-            {list.acl.create ? (
+            {list.access.create ? (
               <IconButton
                 appearance="create"
                 icon={PlusIcon}

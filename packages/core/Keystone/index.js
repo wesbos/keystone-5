@@ -1,6 +1,5 @@
 const { makeExecutableSchema } = require('graphql-tools');
 const { resolveAllKeys } = require('@keystonejs/utils');
-const { parseACL } = require('@keystonejs/utils');
 
 const {
   unmergeRelationships,
@@ -18,16 +17,15 @@ const trim = str => str.replace(/\n\s*\n/g, '\n');
 
 module.exports = class Keystone {
   constructor(config) {
-    this.config = config;
+    this.config = {
+      defaultAccess: true,
+      ...config,
+    };
     this.auth = {};
     this.lists = {};
     this.listsArray = [];
     this.getListByKey = key => this.lists[key];
     this.session = bindSession(this);
-
-    this.defaultAccess = parseACL(config.defaultAccess, {
-      accessTypes: ['create', 'read', 'update', 'delete'],
-    });
 
     if (config.adapters) {
       this.adapters = config.adapters;
@@ -89,7 +87,7 @@ module.exports = class Keystone {
       // violates the read permission as it leaks the fact that item exists.
       // In all these cases, the Admin UI becomes unnecessarily complex.
       // So we only allow all these actions if you also have read access.
-      if (list.acl.read) {
+      if (list.access.read) {
         acc[list.key] = list.getAdminMeta();
       }
       return acc;
