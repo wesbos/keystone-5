@@ -269,6 +269,11 @@ class MongooseListAdapter extends BaseListAdapter {
       .exec()
       .then(data => {
         if (meta) {
+          // When there are no items, we get undefined back, so we simulate the
+          // normal result of 0 items.
+          if (!data[0]) {
+            return { count: 0 };
+          }
           return data[0];
         }
 
