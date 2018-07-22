@@ -1,8 +1,8 @@
 const {
   accessCombinations,
   getStaticListName,
-  getDynamicListName,
-  getDynamicForAdminOnlyListName,
+  getImperativeListName,
+  getDeclarativeListName,
 } = require('./cypress/integration/util');
 
 module.exports = Object.assign(
@@ -96,11 +96,8 @@ module.exports = Object.assign(
     (memo, access) =>
       Object.assign(memo, {
         [getStaticListName(access)]: [{ foo: 'Hello' }, { foo: 'Hi' }],
-        [getDynamicListName(access)]: [{ foo: 'Hello' }, { foo: 'Hi' }],
-        [getDynamicForAdminOnlyListName(access)]: [
-          { foo: 'Hello' },
-          { foo: 'Hi' },
-        ],
+        [getImperativeListName(access)]: [{ foo: 'Hello' }, { foo: 'Hi' }],
+        [getDeclarativeListName(access)]: [{ foo: 'Hello' }, { foo: 'Hi' }],
       }),
     {}
   )

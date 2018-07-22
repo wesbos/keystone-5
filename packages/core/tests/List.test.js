@@ -44,7 +44,6 @@ const config = {
         create: true,
         read: true,
         update: true,
-        delete: true,
       },
     },
     email: {
@@ -60,7 +59,6 @@ const config = {
         create: true,
         read: true,
         update: true,
-        delete: true,
       },
     },
   },

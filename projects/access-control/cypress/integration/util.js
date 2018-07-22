@@ -22,16 +22,16 @@ module.exports = {
     )}Update${yesNo(access.delete)}DeleteStaticList`;
   },
 
-  getDynamicListName(access) {
+  getImperativeListName(access) {
     return `${yesNo(access.create)}Create${yesNo(access.read)}Read${yesNo(
       access.update
-    )}Update${yesNo(access.delete)}DeleteDynamicList`;
+    )}Update${yesNo(access.delete)}DeleteImperativeList`;
   },
 
-  getDynamicForAdminOnlyListName(access) {
+  getDeclarativeListName(access) {
     return `${yesNo(access.create)}Create${yesNo(access.read)}Read${yesNo(
       access.update
-    )}Update${yesNo(access.delete)}DeleteDynamicForAdminOnlyList`;
+    )}Update${yesNo(access.delete)}DeleteDeclarativeList`;
   },
 
   // prettier-ignore

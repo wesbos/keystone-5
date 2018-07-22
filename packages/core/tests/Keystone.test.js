@@ -29,41 +29,58 @@ test('new Keystone()', () => {
   expect(keystone.config).toBe(config);
 });
 
-test('Keystone.createList()', () => {
-  const config = {
-    adapter: new MockAdapter(),
-    name: 'Jest Test',
-  };
-  const keystone = new Keystone(config);
+describe('Keystone.createList()', () => {
+  test('basic', () => {
+    const config = {
+      adapter: new MockAdapter(),
+      name: 'Jest Test',
+    };
+    const keystone = new Keystone(config);
 
-  expect(keystone.lists).toEqual({});
-  expect(keystone.listsArray).toEqual([]);
+    expect(keystone.lists).toEqual({});
+    expect(keystone.listsArray).toEqual([]);
 
-  keystone.createList('User', {
-    fields: {
-      name: {
-        type: {
-          implementation: MockType,
-          views: {},
-          adapters: { mock: MockFieldAdapter },
+    keystone.createList('User', {
+      fields: {
+        name: {
+          type: {
+            implementation: MockType,
+            views: {},
+            adapters: { mock: MockFieldAdapter },
+          },
+        },
+        email: {
+          type: {
+            implementation: MockType,
+            views: {},
+            adapters: { mock: MockFieldAdapter },
+          },
         },
       },
-      email: {
-        type: {
-          implementation: MockType,
-          views: {},
-          adapters: { mock: MockFieldAdapter },
-        },
-      },
-    },
+    });
+
+    expect(keystone.lists).toHaveProperty('User');
+    expect(keystone.lists['User']).toBeInstanceOf(List);
+    expect(keystone.listsArray).toHaveLength(1);
+    expect(keystone.listsArray[0]).toBeInstanceOf(List);
+
+    expect(keystone.listsArray[0]).toBe(keystone.lists['User']);
   });
 
-  expect(keystone.lists).toHaveProperty('User');
-  expect(keystone.lists['User']).toBeInstanceOf(List);
-  expect(keystone.listsArray).toHaveLength(1);
-  expect(keystone.listsArray[0]).toBeInstanceOf(List);
+  describe('access control config', () => {
 
-  expect(keystone.listsArray[0]).toBe(keystone.lists['User']);
+    test('expands shorthand acl config', () => {
+      expect(false).toBe(true);
+    });
+
+    test('throws error when one of create/read/update/delete not set on object', () => {
+      expect(false).toBe(true);
+    });
+
+    test('throws error when create/read/update/delete are not correct type', () => {
+      expect(false).toBe(true);
+    });
+  });
 });
 
 describe('Keystone.createItems()', () => {

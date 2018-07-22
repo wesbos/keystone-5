@@ -1,7 +1,7 @@
 /* eslint-disable jest/valid-expect */
 const {
   getStaticListName,
-  getDynamicListName,
+  getImperativeListName,
   accessCombinations,
   stayLoggedIn,
 } = require('../util');
@@ -109,7 +109,7 @@ describe('Access Control Fields > Admin UI', () => {
         });
     });
 
-    describe('dynamic', () => {
+    describe('imperative', () => {
       stayLoggedIn('su');
 
       // NOTE: We only check lists that are readable as we've checked that
@@ -129,7 +129,7 @@ describe('Access Control Fields > Admin UI', () => {
           it(`shows create option when at least one field creatable (item view): ${JSON.stringify(
             access
           )}`, () => {
-            const name = getDynamicListName(access);
+            const name = getImperativeListName(access);
             const queryName = `all${name}s`;
             const slug = listSlug(name);
 
@@ -162,7 +162,7 @@ describe('Access Control Fields > Admin UI', () => {
           it.skip(`does not show create option when no fields are creatable (item view): ${JSON.stringify(
             access
           )}`, () => {
-            const name = getDynamicListName(access);
+            const name = getImperativeListName(access);
             const queryName = `all${name}s`;
             const slug = listSlug(name);
 
@@ -252,7 +252,7 @@ describe('Access Control Fields > Admin UI', () => {
         });
     });
 
-    describe('dynamic', () => {
+    describe('imperative', () => {
       stayLoggedIn('su');
 
       // NOTE: We only check lists that are readable as we've checked that

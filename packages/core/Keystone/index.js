@@ -211,6 +211,25 @@ module.exports = class Keystone {
       resolvers,
     });
   }
+
+  describeAccessControl() {
+    /*
+    eg;
+    {
+      User: {
+        create: ({ authentication }) => false,
+        read: ({ authentication }) => graphQLThing,
+        update: true,
+        delete: graphQLThing
+      },
+    };
+    */
+    return this.listsArray.reduce((acc, list) => {
+      acc[list.key] = list.describeAccessControl();
+      return acc;
+    }, {});
+  }
+
   createItem(listKey, itemData) {
     return this.lists[listKey].adapter.create(itemData);
   }

@@ -54,10 +54,10 @@ function createListWithStaticAccess(access) {
   });
 }
 
-function createListWithDynamicAccess(access) {
+function createListWithImperativeAccess(access) {
   const name = `${yesNo(access.create)}Create${yesNo(access.read)}Read${yesNo(
     access.update
-  )}Update${yesNo(access.delete)}DeleteDynamicList`;
+  )}Update${yesNo(access.delete)}DeleteImperativeList`;
   keystone.createList(name, {
     fields: {
       foo: { type: Text },
@@ -71,10 +71,10 @@ function createListWithDynamicAccess(access) {
   });
 }
 
-function createListWithDynamicAccessForAdminOnly(access) {
+function createListWithDeclarativeAccess(access) {
   const name = `${yesNo(access.create)}Create${yesNo(access.read)}Read${yesNo(
     access.update
-  )}Update${yesNo(access.delete)}DeleteDynamicForAdminOnlyList`;
+  )}Update${yesNo(access.delete)}DeleteDeclarativeList`;
   keystone.createList(name, {
     fields: {
       foo: { type: Text },
@@ -84,18 +84,45 @@ function createListWithDynamicAccessForAdminOnly(access) {
         access.create &&
         listKey === 'User' &&
         ['su', 'admin'].includes(item.level),
-      read: ({ authentication: { item, listKey } }) =>
-        access.read &&
-        listKey === 'User' &&
-        ['su', 'admin'].includes(item.level),
-      update: ({ authentication: { item, listKey } }) =>
-        access.update &&
-        listKey === 'User' &&
-        ['su', 'admin'].includes(item.level),
-      delete: ({ authentication: { item, listKey } }) =>
-        access.delete &&
-        listKey === 'User' &&
-        ['su', 'admin'].includes(item.level),
+      read: ({ authentication: { item, listKey } }) => {
+        if (
+          access.read &&
+          listKey === 'User' &&
+          ['su', 'admin'].includes(item.level)
+        ) {
+          return {
+            // arbitrarily restrict the data to a single item (see data.js)
+            foo_starts_with: 'Hello',
+          };
+        }
+        return false;
+      },
+      update: ({ authentication: { item, listKey } }) => {
+        if (
+          access.update &&
+          listKey === 'User' &&
+          ['su', 'admin'].includes(item.level)
+        ) {
+          return {
+            // arbitrarily restrict the data to a single item (see data.js)
+            foo_starts_with: 'Hello',
+          };
+        }
+        return false;
+      },
+      delete: ({ authentication: { item, listKey } }) => {
+        if (
+          access.delete &&
+          listKey === 'User' &&
+          ['su', 'admin'].includes(item.level)
+        ) {
+          return {
+            // arbitrarily restrict the data to a single item (see data.js)
+            foo_starts_with: 'Hello',
+          };
+        }
+        return false;
+      },
     },
   });
 }
@@ -134,8 +161,8 @@ const listAccessVariations = [
 ];
 
 listAccessVariations.forEach(createListWithStaticAccess);
-listAccessVariations.forEach(createListWithDynamicAccess);
-listAccessVariations.forEach(createListWithDynamicAccessForAdminOnly);
+listAccessVariations.forEach(createListWithImperativeAccess);
+listAccessVariations.forEach(createListWithDeclarativeAccess);
 
 keystone.createList('Post', {
   fields: {

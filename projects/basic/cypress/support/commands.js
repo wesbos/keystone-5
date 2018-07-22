@@ -101,19 +101,3 @@ function graphqlOperation(type) {
 
 Cypress.Commands.add('graphql_query', graphqlOperation('query'));
 Cypress.Commands.add('graphql_mutate', graphqlOperation('mutate'));
-
-Cypress.Commands.add('loginToKeystone', (email, password) => {
-  cy.visit('/admin');
-
-  cy
-    .get('input[name="username"]')
-    .clear({ force: true })
-    .type(email, { force: true });
-
-  cy
-    .get('[name="password"]')
-    .clear({ force: true })
-    .type(password, { force: true });
-
-  cy.get('button[type="submit"]').click();
-});

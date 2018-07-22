@@ -84,6 +84,10 @@ function graphqlOperation(type) {
       // eslint-disable-next-line no-underscore-dangle
       win.__APOLLO_CLIENT__[type]({
         [type === 'mutate' ? 'mutation' : type]: operation,
+        // Avoid anything which may be cached when loading the admin UI - we
+        // want to test how the GraphQL API responds, not how the Apollo Cache
+        // responds (which can be different: it doesn't cache errors!)
+        fetchPolicy: 'no-cache',
       })
         .then(result => {
           console.log('Fetched data:', result);
@@ -118,4 +122,7 @@ Cypress.Commands.add('loginToKeystone', (email, password) => {
     .type(password, { force: true });
 
   cy.get('button[type="submit"]').click();
+
+  // Wait for page to load (completing the signin round trip)
+  cy.get('main h1').should('contain', 'Home');
 });

@@ -1,8 +1,8 @@
 /* eslint-disable jest/valid-expect */
 const {
   getStaticListName,
-  getDynamicListName,
-  getDynamicForAdminOnlyListName,
+  getImperativeListName,
+  getDeclarativeListName,
   accessCombinations,
   stayLoggedIn,
 } = require('../util');
@@ -60,12 +60,12 @@ describe('Access Control Lists > Admin UI', () => {
       });
     });
 
-    describe('read: dynamic config', () => {
+    describe('read: imperative config', () => {
       stayLoggedIn('su');
 
       accessCombinations.filter(({ read }) => read).forEach(access => {
         it(`shows items when readable: ${JSON.stringify(access)}`, () => {
-          const name = getDynamicListName(access);
+          const name = getImperativeListName(access);
           const prettyName = prettyListName(name);
           const slug = listSlug(name);
 
@@ -86,7 +86,7 @@ describe('Access Control Lists > Admin UI', () => {
         it(`shows an access restricted message when not readable: ${JSON.stringify(
           access
         )}`, () => {
-          const name = getDynamicListName(access);
+          const name = getImperativeListName(access);
           const prettyName = prettyListName(name);
           const slug = listSlug(name);
 
@@ -105,7 +105,7 @@ describe('Access Control Lists > Admin UI', () => {
       });
     });
 
-    describe('read: dynamic config based on user', () => {
+    describe('read: declarative', () => {
       describe('admin', () => {
         stayLoggedIn('su');
 
@@ -113,7 +113,7 @@ describe('Access Control Lists > Admin UI', () => {
           it(`shows items when readable & admin: ${JSON.stringify(
             access
           )}`, () => {
-            const name = getDynamicForAdminOnlyListName(access);
+            const name = getDeclarativeListName(access);
             const prettyName = prettyListName(name);
             const slug = listSlug(name);
 
@@ -138,7 +138,7 @@ describe('Access Control Lists > Admin UI', () => {
           it(`does not show items when readable & not admin: ${JSON.stringify(
             access
           )}`, () => {
-            const name = getDynamicForAdminOnlyListName(access);
+            const name = getDeclarativeListName(access);
             const prettyName = prettyListName(name);
             const slug = listSlug(name);
 
@@ -238,7 +238,7 @@ describe('Access Control Lists > Admin UI', () => {
         });
     });
 
-    describe('dynamic', () => {
+    describe('imperative', () => {
       stayLoggedIn('su');
 
       // NOTE: We only check lists that are readable as we've checked that
@@ -249,7 +249,7 @@ describe('Access Control Lists > Admin UI', () => {
           it(`shows create option when creatable (list view): ${JSON.stringify(
             access
           )}`, () => {
-            const name = getDynamicListName(access);
+            const name = getImperativeListName(access);
             const slug = listSlug(name);
 
             cy.visit(`admin/${slug}`);
@@ -264,7 +264,7 @@ describe('Access Control Lists > Admin UI', () => {
           it(`shows create option when creatable (item view): ${JSON.stringify(
             access
           )}`, () => {
-            const name = getDynamicListName(access);
+            const name = getImperativeListName(access);
             const queryName = `all${name}s`;
             const slug = listSlug(name);
 
@@ -368,7 +368,7 @@ describe('Access Control Lists > Admin UI', () => {
         });
     });
 
-    describe('dynamic', () => {
+    describe('imperative', () => {
       stayLoggedIn('su');
 
       // NOTE: We only check lists that are readable as we've checked that
@@ -379,7 +379,7 @@ describe('Access Control Lists > Admin UI', () => {
           it(`shows create option when creatable: ${JSON.stringify(
             access
           )}`, () => {
-            const name = getDynamicListName(access);
+            const name = getImperativeListName(access);
             const slug = listSlug(name);
 
             cy.visit(`admin/${slug}`);
