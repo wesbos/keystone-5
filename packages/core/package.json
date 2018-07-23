@@ -8,6 +8,7 @@
     "node": ">=8.4.0"
   },
   "dependencies": {
+    "@keystonejs/access-control": "^5.0.0",
     "@keystonejs/fields": "^5.0.0",
     "@keystonejs/utils": "^1.0.0",
     "apollo-errors": "^1.9.0",

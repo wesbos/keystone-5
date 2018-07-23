@@ -102,12 +102,11 @@ module.exports = class Keystone {
     ).map(trim);
 
     listTypes.push(`
+      # NOTE: Can be JSON, or a Boolean/Int/String
       scalar JSON
     `);
 
     listTypes.push(`
-      union BooleanOrJSON = Boolean | JSON
-
       type _ListAccess {
         # Access Control settings for the currently logged in (or anonymous)
         # user when performing 'create' operations.
@@ -118,15 +117,15 @@ module.exports = class Keystone {
 
         # Access Control settings for the currently logged in (or anonymous)
         # user when performing 'read' operations.
-        read: BooleanOrJSON
+        read: JSON
 
         # Access Control settings for the currently logged in (or anonymous)
         # user when performing 'update' operations.
-        update: BooleanOrJSON
+        update: JSON
 
         # Access Control settings for the currently logged in (or anonymous)
         # user when performing 'delete' operations.
-        delete: BooleanOrJSON
+        delete: JSON
       }
 
       type _ListMeta {
@@ -207,19 +206,6 @@ module.exports = class Keystone {
 
       JSON: GraphQLJSON,
 
-      BooleanOrJSON: {
-        // Resolve the type for the union
-        // See: https://www.apollographql.com/docs/graphql-tools/resolvers#Unions-and-interfaces
-        __resolveType(data) {
-          if (getType(data) === 'Boolean') {
-            return 'Boolean';
-          } else if (getType(data) === 'Object') {
-            return 'JSON';
-          }
-          return null;
-        },
-      },
-
       _QueryMeta: queryMetaResolver,
       _ListMeta: listMetaResolver,
       _ListAccess: listAccessResolver,
@@ -260,22 +246,12 @@ module.exports = class Keystone {
     });
   }
 
-  describeAccessControl() {
-    /*
-    eg;
-    {
-      User: {
-        create: ({ authentication }) => false,
-        read: ({ authentication }) => graphQLThing,
-        update: true,
-        delete: graphQLThing
-      },
-    };
-    */
-    return this.listsArray.reduce((acc, list) => {
-      acc[list.key] = list.describeAccessControl();
-      return acc;
-    }, {});
+  getAccessControl({
+    listKey,
+    operation,
+    authentication,
+  }) {
+    return this.lists[listKey].getAccessControl({ operation, authentication });
   }
 
   createItem(listKey, itemData) {

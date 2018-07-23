@@ -1,5 +1,6 @@
 const inflection = require('inflection');
-const { parseFieldAccess, pick } = require('@keystonejs/utils');
+const { pick } = require('@keystonejs/utils');
+const { parseFieldAccess } = require('@keystonejs/access-control');
 
 class Field {
   constructor(
@@ -35,6 +36,11 @@ class Field {
         listKey,
         path,
       }),
+    };
+
+    // TODO
+    this.access = {
+      ...parseFieldAccess(),
     };
   }
   getGraphqlSchema() {

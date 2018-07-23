@@ -1,13 +1,23 @@
 const pluralize = require('pluralize');
 const {
-  parseListAccess,
   resolveAllKeys,
-  mergeWhereClause,
+  omit,
 } = require('@keystonejs/utils');
+
+const {
+  parseListAccess,
+  testListAccessControl,
+  mergeWhereClause,
+} = require('@keystonejs/access-control');
 
 const { AccessDeniedError } = require('./graphqlErrors');
 
 const upcase = str => str.substr(0, 1).toUpperCase() + str.substr(1);
+
+const unique = arr => [...new Set(arr)];
+
+const intersection = (array1, array2) =>
+  unique(array1.filter(value => array2.includes(value)));
 
 const keyToLabel = str =>
   str
@@ -207,6 +217,8 @@ module.exports = class List {
         input ${this.itemQueryName}WhereInput {
           id: ID
           id_not: ID
+          id_in: [ID!]
+          id_not_in: [ID!]
           ${queryArgs}
         }
       `);
@@ -290,7 +302,7 @@ module.exports = class List {
     if (this.access.read) {
       resolvers = {
         [this.listQueryName]: (_, args, context) => {
-          const access = context.getAccessControl(this.key, 'read');
+          const access = context.getAccessControlForUser(this.key, 'read');
           if (!access) {
             // If the client handles errors correctly, it should be able to
             // receive partial data (for the fields the user has access to),
@@ -317,7 +329,7 @@ module.exports = class List {
             // on what the user requested
             // Evalutation takes place in ../Keystone/index.js
             getCount: () => {
-              const access = context.getAccessControl(this.key, 'read');
+              const access = context.getAccessControlForUser(this.key, 'read');
               if (!access) {
                 // If the client handles errors correctly, it should be able to
                 // receive partial data (for the fields the user has access to),
@@ -349,83 +361,27 @@ module.exports = class List {
             // NOTE: These could return a Boolean or a JSON object (if using the
             // declarative syntax)
             getAccess: () => ({
-              getCreate: () => context.getAccessControl(this.key, 'create'),
-              getRead: () => context.getAccessControl(this.key, 'read'),
-              getUpdate: () => context.getAccessControl(this.key, 'update'),
-              getDelete: () => context.getAccessControl(this.key, 'delete'),
+              getCreate: () => context.getAccessControlForUser(this.key, 'create'),
+              getRead: () => context.getAccessControlForUser(this.key, 'read'),
+              getUpdate: () => context.getAccessControlForUser(this.key, 'update'),
+              getDelete: () => context.getAccessControlForUser(this.key, 'delete'),
             }),
           };
         },
 
         [this.itemQueryName]: async (_, { where: { id } }, context) => {
-          const throwAccessDenied = () => {
-            // If the client handles errors correctly, it should be able to
-            // receive partial data (for the fields the user has access to),
-            // and then an `errors` array of AccessDeniedError's
-            throw new AccessDeniedError({
-              data: {
+          return this.performActionOnItemWithAccessControl(
+            {
+              id,
+              context,
+              operation: 'read',
+              errorData: {
                 type: 'query',
                 name: this.itemQueryName,
               },
-              internalData: {
-                authedId: context.authedItem && context.authedItem.id,
-                authedListKey: context.authedListKey,
-              },
-            });
-          };
-
-          const access = context.getAccessControl(this.key, 'read');
-          if (!access) {
-            throwAccessDenied();
-          }
-
-          // Early out - the user has full access to read this list
-          if (access === true) {
-            return this.adapter.findById(id);
-          }
-
-          // It's odd, but conceivable the access control specifies a single id
-          // the user has access to. So we have to do a check here to see if the
-          // ID they're requesting matches that ID.
-          // Nice side-effect: We can throw without having to ever query the DB.
-          // NOTE: Don't try to early out here by doing
-          // if(access.id === id) return findById(id)
-          // this will result in a possible false match if the access control
-          // has other items in it
-          if (access.id && access.id !== id) {
-            throwAccessDenied();
-          }
-
-          // NOTE: The fields will be filtered by the ACL checking in
-          // getAdminFieldResolvers()
-          let queryArgs = {
-            // We only want 1 item, don't make the DB do extra work
-            first: 1,
-            where: {
-              // NOTE: Order here doesn't matter, if `access.id !== id`, it will
-              // have been caught earlier, so this spread and overwrite can only
-              // ever be additive or overwrite with the same value
-              ...access,
-              id,
             },
-          };
-
-          const items = await this.adapter.itemsQuery(queryArgs);
-
-          if (items.length === 0) {
-            // NOTE: There is a potential security risk here if we were to
-            // further check the existence of an item with the given ID: It'd be
-            // possible to figure out if records with particular IDs exist in
-            // the DB even if the user doesn't have access (eg; check a bunch of
-            // IDs, and the ones that return AccessDenied exist, and the ones
-            // that return null do not exist). Similar to how S3 returns 403's
-            // always instead of ever returning 404's.
-            // Our version is to always throw if not found.
-            throwAccessDenied();
-          }
-
-          // Found the item, and it passed the filter test
-          return items[0];
+            item => item,
+          );
         },
       };
     }
@@ -607,40 +563,6 @@ module.exports = class List {
     return mutations.filter(Boolean);
   }
 
-  throwIfAccessDeniedOnList({
-    accessType,
-    data,
-    item,
-    items,
-    context: { authedItem, authedListKey },
-    errorMeta = {},
-    errorMetaForLogging = {},
-  }) {
-    if (
-      !checkAccess({
-        access: this.acl[accessType],
-        dynamicCheckData: () => ({
-          data,
-          item,
-          items,
-          authentication: {
-            item: authedItem,
-            listKey: authedListKey,
-          },
-        }),
-      })
-    ) {
-      throw new AccessDeniedError({
-        data: errorMeta,
-        internalData: {
-          authedId: authedItem && authedItem.id,
-          authedListKey: authedListKey,
-          ...errorMetaForLogging,
-        },
-      });
-    }
-  }
-
   throwIfAccessDeniedOnFields({
     fields,
     accessType,
@@ -694,6 +616,169 @@ module.exports = class List {
     }
   }
 
+  async performActionOnItemWithAccessControl({ operation, id, context, errorData }, action) {
+    const throwAccessDenied = () => {
+      // If the client handles errors correctly, it should be able to
+      // receive partial data (for the fields the user has access to),
+      // and then an `errors` array of AccessDeniedError's
+      throw new AccessDeniedError({
+        data: errorData,
+        internalData: {
+          authedId: context.authedItem && context.authedItem.id,
+          authedListKey: context.authedListKey,
+          itemId: id,
+        },
+      });
+    };
+
+    const access = context.getAccessControlForUser(this.key, operation);
+    if (!access) {
+      throwAccessDenied();
+    }
+
+    // Early out - the user has full access to update this list
+    if (access === true) {
+      const item = await this.adapter.findById(id);
+      return action(item);
+    }
+
+    // It's odd, but conceivable the access control specifies a single id
+    // the user has access to. So we have to do a check here to see if the
+    // ID they're requesting matches that ID.
+    // Nice side-effect: We can throw without having to ever query the DB.
+    // NOTE: Don't try to early out here by doing
+    // if(access.id === id) return findById(id)
+    // this will result in a possible false match if the access control
+    // has other items in it
+    if (
+      (access.id && access.id !== id) ||
+      (access.id_not && access.id_not === id) ||
+      (access.id_in && !access.id_in.includes(id)) ||
+      (access.id_not_in && access.id_not_in.includes(id))
+    ) {
+      throwAccessDenied();
+    }
+
+    // NOTE: The fields will be filtered by the ACL checking in
+    // getAdminFieldResolvers()
+    let queryArgs = {
+      // We only want 1 item, don't make the DB do extra work
+      first: 1,
+      where: {
+        // NOTE: Order here doesn't matter, if `access.id !== id`, it will
+        // have been caught earlier, so this spread and overwrite can only
+        // ever be additive or overwrite with the same value
+        ...access,
+        id,
+      },
+    };
+
+    const items = await this.adapter.itemsQuery(queryArgs);
+
+    if (items.length === 0) {
+      // NOTE: There is a potential security risk here if we were to
+      // further check the existence of an item with the given ID: It'd be
+      // possible to figure out if records with particular IDs exist in
+      // the DB even if the user doesn't have access (eg; check a bunch of
+      // IDs, and the ones that return AccessDenied exist, and the ones
+      // that return null do not exist). Similar to how S3 returns 403's
+      // always instead of ever returning 404's.
+      // Our version is to always throw if not found.
+      throwAccessDenied();
+    }
+
+    // Found the item, and it passed the filter test
+    return action(items[0]);
+  }
+
+  async performMultiActionOnItemsWithAccessControl({ operation, ids, context, errorData }, action) {
+    if (ids.length === 0) {
+      return [];
+    }
+
+    const access = context.getAccessControlForUser(this.key, operation);
+    if (!access) {
+      // If the client handles errors correctly, it should be able to
+      // receive partial data (for the fields the user has access to),
+      // and then an `errors` array of AccessDeniedError's
+      throw new AccessDeniedError({
+        data: errorData,
+        internalData: {
+          authedId: context.authedItem && context.authedItem.id,
+          authedListKey: context.authedListKey,
+          itemIds: ids,
+        },
+      });
+    }
+
+    const uniqueIds = unique(ids);
+
+    // Early out - the user has full access to operate on this list
+    if (access === true) {
+      const items = await this.adapter.itemsQuery({ where: { id_in: uniqueIds } });
+      return action(items);
+    }
+
+    let idFilters = {};
+
+    if (access.id || access.id_in) {
+      const accessControlIdsAllowed = unique(
+        [].concat(access.id, access.id_in)
+        .filter(Boolean)
+      );
+
+      idFilters.id_in = intersection(accessControlIdsAllowed, uniqueIds);
+    } else {
+      idFilters.id_in = uniqueIds;
+    }
+
+    if (access.id_not || access.id_not_in) {
+      const accessControlIdsDisallowed = unique(
+        [].concat(access.id_not, access.id_not_in)
+        .filter(Boolean)
+      );
+
+      idFilters.id_not_in = intersection(accessControlIdsDisallowed, uniqueIds);
+    }
+
+    // It's odd, but conceivable the access control specifies a single id
+    // the user has access to. So we have to do a check here to see if the
+    // ID they're requesting matches that ID.
+    // Nice side-effect: We can throw without having to ever query the DB.
+    // NOTE: Don't try to early out here by doing
+    // if(access.id === id) return findById(id)
+    // this will result in a possible false match if the access control
+    // has other items in it
+    if (
+      // Only some ids are allowed, and none of them have been passed in
+      (idFilters.id_in && idFilters.id_in.length === 0) ||
+      // All the passed in ids have been explicitly disallowed
+      (idFilters.id_not_in && idFilters.id_not_in.length === uniqueIds.length)
+    ) {
+      // NOTE: We don't throw an error for multi-actions, only return an empty
+      // array because there's no mechanism in GraphQL to return more than one
+      // error for a list result.
+      return [];
+    }
+
+    // NOTE: The fields will be filtered by the ACL checking in
+    // getAdminFieldResolvers()
+    let queryArgs = {
+      where: {
+        ...omit(access, ['id', 'id_not', 'id_in', 'id_not_in']),
+        ...idFilters,
+      },
+    };
+
+    const items = await this.adapter.itemsQuery(queryArgs);
+
+    // NOTE: Unlike in the single-operation variation, there is no security risk
+    // in returning the result of the query here, because if no items match, we
+    // return an empty array regarless of if that's because of lack of
+    // permissions or because of those items don't exist.
+    return action(items[0]);
+  }
+
   getAdminMutationResolvers() {
     const mutationResolvers = {};
 
@@ -703,15 +788,19 @@ module.exports = class List {
         { data },
         context
       ) => {
-        this.throwIfAccessDeniedOnList({
-          accessType: 'create',
-          data,
-          context,
-          errorMeta: {
-            type: 'mutation',
-            name: this.createMutationName,
-          },
-        });
+        const access = context.getAccessControlForUser(this.key, 'read');
+        if (!access) {
+          throw new AccessDeniedError({
+            data: {
+              type: 'mutation',
+              name: this.createMutationName,
+            },
+            internalData: {
+              authedId: context.authedItem && context.authedItem.id,
+              authedListKey: context.authedListKey,
+            },
+          });
+        }
 
         const resolvedData = await resolveAllKeys(
           Object.keys(data).reduce(
@@ -748,74 +837,69 @@ module.exports = class List {
         { id, data },
         context
       ) => {
-        // TODO: Only load this if the ACL is dynamic, and requires it
-        const item = await this.adapter.findById(id);
-
-        this.throwIfAccessDeniedOnList({
-          accessType: 'update',
-          data,
-          item,
-          context,
-          errorMeta: {
-            type: 'mutation',
-            name: this.updateMutationName,
-          },
-          errorMetaForLogging: {
-            itemId: id,
-          },
-        });
-
-        this.throwIfAccessDeniedOnFields({
-          fields: this.fields,
-          accessType: 'update',
-          id,
-          data,
-          context,
-          errorMeta: {
-            type: 'mutation',
-            name: this.updateMutationName,
-          },
-          errorMetaForLogging: {
-            itemId: id,
-          },
-        });
-
-        const resolvedData = await resolveAllKeys(
-          Object.keys(data).reduce(
-            (resolvers, fieldPath) => ({
-              ...resolvers,
-              [fieldPath]: this.fieldsByPath[fieldPath].updateFieldPreHook(
-                data[fieldPath],
-                fieldPath,
-                item
-              ),
-            }),
-            {}
-          )
-        );
-
-        const newItem = await this.adapter.update(
-          id,
-          // avoid any kind of injection attack by explicitly doing a `$set`
-          // operation
-          { $set: resolvedData },
+        return this.performActionOnItemWithAccessControl(
           {
-            // Return the modified item, not the original
-            new: true,
+            id,
+            context,
+            operation: 'update',
+            errorData: {
+              type: 'mutation',
+              name: this.updateMutationName,
+            },
+          },
+          async (item) => {
+            // TODO Implement declarative syntax for fields
+            /*this.throwIfAccessDeniedOnFields({
+              fields: this.fields,
+              accessType: 'update',
+              id,
+              data,
+              context,
+              errorMeta: {
+                type: 'mutation',
+                name: this.updateMutationName,
+              },
+              errorMetaForLogging: {
+                itemId: id,
+              },
+            });*/
+
+            const resolvedData = await resolveAllKeys(
+              Object.keys(data).reduce(
+                (resolvers, fieldPath) => ({
+                  ...resolvers,
+                  [fieldPath]: this.fieldsByPath[fieldPath].updateFieldPreHook(
+                    data[fieldPath],
+                    fieldPath,
+                    item
+                  ),
+                }),
+                {}
+              )
+            );
+
+            const newItem = await this.adapter.update(
+              id,
+              // avoid any kind of injection attack by explicitly doing a `$set`
+              // operation
+              { $set: resolvedData },
+              // Return the modified item, not the original
+              { new: true },
+            );
+
+            await Promise.all(
+              Object.keys(data).map(fieldPath =>
+                this.fieldsByPath[fieldPath].updateFieldPostHook(
+                  newItem[fieldPath],
+                  fieldPath,
+                  newItem
+                )
+              )
+            );
+
+            return newItem;
           }
         );
-
-        await Promise.all(
-          Object.keys(data).map(fieldPath =>
-            this.fieldsByPath[fieldPath].updateFieldPostHook(
-              newItem[fieldPath],
-              fieldPath,
-              newItem
-            )
-          )
-        );
-
-        return newItem;
       };
     }
 
@@ -825,23 +909,21 @@ module.exports = class List {
         { id },
         context
       ) => {
-        // TODO: Only load this if the ACL is dynamic, and requires it
-        const item = await this.adapter.findById(id);
-
-        this.throwIfAccessDeniedOnList({
-          accessType: 'delete',
-          item,
-          context,
-          errorMeta: {
-            type: 'mutation',
-            name: this.deleteMutationName,
+        return this.performActionOnItemWithAccessControl(
+          {
+            id,
+            context,
+            operation: 'delete',
+            errorData: {
+              type: 'mutation',
+              name: this.deleteMutationName,
+            },
           },
-          errorMetaForLogging: {
-            itemId: id,
-          },
-        });
-
-        return this.adapter.delete(id);
+          (/* item */) => {
+            // TODO: pre/post delete hooks
+            return this.adapter.delete(id);
+          }
+        );
       };
 
       mutationResolvers[this.deleteManyMutationName] = async (
@@ -849,30 +931,33 @@ module.exports = class List {
         { ids },
         context
       ) => {
-        const items = await Promise.all(
-          ids.map(id => this.adapter.findById(id))
+        return this.performMultiActionOnItemsWithAccessControl(
+          {
+            ids,
+            context,
+            operation: 'delete',
+            errorData: {
+              type: 'mutation',
+              name: this.deleteManyMutationName,
+            }
+          },
+          (items) => Promise.all(items.map(({ id }) => this.adapter.delete(id))),
         );
-        this.throwIfAccessDeniedOnList({
-          accessType: 'delete',
-          items,
-          context,
-          errorMeta: {
-            type: 'mutation',
-            name: this.deleteManyMutationName,
-          },
-          errorMetaForLogging: {
-            itemIds: ids,
-          },
-        });
-
-        return Promise.all(ids.map(id => this.adapter.delete(id)));
       };
     }
 
     return mutationResolvers;
   }
 
-  describeAccessControl() {
-    return this.access;
+  getAccessControl({
+    operation,
+    authentication,
+  }) {
+    return testListAccessControl({
+      access: this.access,
+      operation,
+      authentication,
+      listKey: this.key,
+    });
   }
 };
