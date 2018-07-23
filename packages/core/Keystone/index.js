@@ -1,5 +1,6 @@
+const GraphQLJSON = require('graphql-type-json');
 const { makeExecutableSchema } = require('graphql-tools');
-const { resolveAllKeys } = require('@keystonejs/utils');
+const { resolveAllKeys, getType } = require('@keystonejs/utils');
 
 const {
   unmergeRelationships,
@@ -101,11 +102,31 @@ module.exports = class Keystone {
     ).map(trim);
 
     listTypes.push(`
+      scalar JSON
+    `);
+
+    listTypes.push(`
+      union BooleanOrJSON = Boolean | JSON
+
       type _ListAccess {
+        # Access Control settings for the currently logged in (or anonymous)
+        # user when performing 'create' operations.
+        # NOTE: 'create' can only return a Boolean.
+        # It is not possible to specify a declarative Where clause for this
+        # operation
         create: Boolean
-        read: Boolean
-        update: Boolean
-        delete: Boolean
+
+        # Access Control settings for the currently logged in (or anonymous)
+        # user when performing 'read' operations.
+        read: BooleanOrJSON
+
+        # Access Control settings for the currently logged in (or anonymous)
+        # user when performing 'update' operations.
+        update: BooleanOrJSON
+
+        # Access Control settings for the currently logged in (or anonymous)
+        # user when performing 'delete' operations.
+        delete: BooleanOrJSON
       }
 
       type _ListMeta {
@@ -153,6 +174,14 @@ module.exports = class Keystone {
       access: meta => meta.getAccess(),
     };
 
+    const listAccessResolver = {
+      // access is passed in from the listMetaResolver
+      create: access => access.getCreate(),
+      read: access => access.getRead(),
+      update: access => access.getUpdate(),
+      delete: access => access.getDelete(),
+    };
+
     if (debugGraphQLSchemas()) {
       console.log(typeDefs);
       listTypes.forEach(i => console.log(i));
@@ -164,6 +193,7 @@ module.exports = class Keystone {
     // there's no errors thrown
     // TODO: console.warn when duplicate keys are detected?
     const resolvers = {
+
       // Order of spreading is important here - we don't want user-defined types
       // to accidentally override important things like `Query`.
       ...this.listsArray.reduce(
@@ -174,8 +204,26 @@ module.exports = class Keystone {
         }),
         {}
       ),
+
+      JSON: GraphQLJSON,
+
+      BooleanOrJSON: {
+        // Resolve the type for the union
+        // See: https://www.apollographql.com/docs/graphql-tools/resolvers#Unions-and-interfaces
+        __resolveType(data) {
+          if (getType(data) === 'Boolean') {
+            return 'Boolean';
+          } else if (getType(data) === 'Object') {
+            return 'JSON';
+          }
+          return null;
+        },
+      },
+
       _QueryMeta: queryMetaResolver,
       _ListMeta: listMetaResolver,
+      _ListAccess: listAccessResolver,
+
       Query: {
         // Order is also important here, any TypeQuery's defined by types
         // shouldn't be able to override list-level queries
@@ -188,6 +236,7 @@ module.exports = class Keystone {
           {}
         ),
       },
+
       Mutation: {
         ...this.listsArray.reduce(
           (acc, i) => ({ ...i.getAuxiliaryMutationResolvers(), ...acc }),
@@ -198,6 +247,7 @@ module.exports = class Keystone {
           {}
         ),
       },
+
     };
 
     if (debugGraphQLSchemas()) {

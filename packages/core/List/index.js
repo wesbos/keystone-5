@@ -1,11 +1,8 @@
 const pluralize = require('pluralize');
 const {
   parseListAccess,
-  checkAccess,
   resolveAllKeys,
   mergeWhereClause,
-  getType,
-  pick,
 } = require('@keystonejs/utils');
 
 const { AccessDeniedError } = require('./graphqlErrors');
@@ -315,20 +312,13 @@ module.exports = class List {
         },
 
         [this.listQueryMetaName]: (_, args, { authedItem, authedListKey }) => {
-          const dynamicCheckData = () => ({
-            where: args,
-            authentication: {
-              item: authedItem,
-              listKey: authedListKey,
-            },
-          });
-
           return {
             // Return these as functions so they're lazily evaluated depending
             // on what the user requested
             // Evalutation takes place in ../Keystone/index.js
             getCount: () => {
-              if (!checkAccess({ access: this.acl.read, dynamicCheckData })) {
+              const access = context.getAccessControl(this.key, 'read');
+              if (!access) {
                 // If the client handles errors correctly, it should be able to
                 // receive partial data (for the fields the user has access to),
                 // and then an `errors` array of AccessDeniedError's
@@ -343,57 +333,32 @@ module.exports = class List {
                   },
                 });
               }
+              let queryArgs = mergeWhereClause(args, access);
               return this.adapter
-                .itemsQueryMeta(args)
+                .itemsQueryMeta(queryArgs)
                 .then(({ count }) => count);
             },
           };
         },
 
-        [this.listMetaName]: (_, args, { authedItem, authedListKey }) => {
-          const dynamicCheckData = () => ({
-            where: args,
-            authentication: {
-              item: authedItem,
-              listKey: authedListKey,
-            },
-          });
-
+        [this.listMetaName]: () => {
           return {
             // Return these as functions so they're lazily evaluated depending
             // on what the user requested
             // Evalutation takes place in ../Keystone/index.js
+            // NOTE: These could return a Boolean or a JSON object (if using the
+            // declarative syntax)
             getAccess: () => ({
-              create: checkAccess({
-                access: this.acl.create,
-                dynamicCheckData,
-              }),
-              read: checkAccess({ access: this.acl.read, dynamicCheckData }),
-              update: checkAccess({
-                access: this.acl.update,
-                dynamicCheckData,
-              }),
-              delete: checkAccess({
-                access: this.acl.delete,
-                dynamicCheckData,
-              }),
+              getCreate: () => context.getAccessControl(this.key, 'create'),
+              getRead: () => context.getAccessControl(this.key, 'read'),
+              getUpdate: () => context.getAccessControl(this.key, 'update'),
+              getDelete: () => context.getAccessControl(this.key, 'delete'),
             }),
           };
         },
 
-        [this.itemQueryName]: (_, { where: { id } }, context) => {
-          if (
-            !checkAccess({
-              access: this.acl.read,
-              dynamicCheckData: () => ({
-                where: { id },
-                authentication: {
-                  item: context.authedItem,
-                  listKey: context.authedListKey,
-                },
-              }),
-            })
-          ) {
+        [this.itemQueryName]: async (_, { where: { id } }, context) => {
+          const throwAccessDenied = () => {
             // If the client handles errors correctly, it should be able to
             // receive partial data (for the fields the user has access to),
             // and then an `errors` array of AccessDeniedError's
@@ -407,11 +372,60 @@ module.exports = class List {
                 authedListKey: context.authedListKey,
               },
             });
+          };
+
+          const access = context.getAccessControl(this.key, 'read');
+          if (!access) {
+            throwAccessDenied();
+          }
+
+          // Early out - the user has full access to read this list
+          if (access === true) {
+            return this.adapter.findById(id);
+          }
+
+          // It's odd, but conceivable the access control specifies a single id
+          // the user has access to. So we have to do a check here to see if the
+          // ID they're requesting matches that ID.
+          // Nice side-effect: We can throw without having to ever query the DB.
+          // NOTE: Don't try to early out here by doing
+          // if(access.id === id) return findById(id)
+          // this will result in a possible false match if the access control
+          // has other items in it
+          if (access.id && access.id !== id) {
+            throwAccessDenied();
           }
 
           // NOTE: The fields will be filtered by the ACL checking in
           // getAdminFieldResolvers()
-          return this.adapter.findById(id);
+          let queryArgs = {
+            // We only want 1 item, don't make the DB do extra work
+            first: 1,
+            where: {
+              // NOTE: Order here doesn't matter, if `access.id !== id`, it will
+              // have been caught earlier, so this spread and overwrite can only
+              // ever be additive or overwrite with the same value
+              ...access,
+              id,
+            },
+          };
+
+          const items = await this.adapter.itemsQuery(queryArgs);
+
+          if (items.length === 0) {
+            // NOTE: There is a potential security risk here if we were to
+            // further check the existence of an item with the given ID: It'd be
+            // possible to figure out if records with particular IDs exist in
+            // the DB even if the user doesn't have access (eg; check a bunch of
+            // IDs, and the ones that return AccessDenied exist, and the ones
+            // that return null do not exist). Similar to how S3 returns 403's
+            // always instead of ever returning 404's.
+            // Our version is to always throw if not found.
+            throwAccessDenied();
+          }
+
+          // Found the item, and it passed the filter test
+          return items[0];
         },
       };
     }
