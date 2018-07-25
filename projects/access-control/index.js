@@ -38,31 +38,89 @@ keystone.createList('User', {
   },
 });
 
+// prettier-ignore
+const listAccessVariations = [
+  { create: false, read: false, update: false, delete: false },
+  { create: true,  read: false, update: false, delete: false },
+  { create: false, read: true,  update: false, delete: false },
+  { create: true,  read: true,  update: false, delete: false },
+  { create: false, read: false, update: true,  delete: false },
+  { create: true,  read: false, update: true,  delete: false },
+  { create: false, read: true,  update: true,  delete: false },
+  { create: true,  read: true,  update: true,  delete: false },
+  { create: false, read: false, update: false, delete: true },
+  { create: true,  read: false, update: false, delete: true },
+  { create: false, read: true,  update: false, delete: true },
+  { create: true,  read: true,  update: false, delete: true },
+  { create: false, read: false, update: true,  delete: true },
+  { create: true,  read: false, update: true,  delete: true },
+  { create: false, read: true,  update: true,  delete: true },
+  { create: true,  read: true,  update: true,  delete: true },
+];
+
+const fieldAccessVariations = [
+  { create: false, read: false, update: false },
+  { create: true,  read: false, update: false },
+  { create: false, read: true,  update: false },
+  { create: true,  read: true,  update: false },
+  { create: false, read: false, update: true },
+  { create: true,  read: false, update: true },
+  { create: false, read: true,  update: true },
+  { create: true,  read: true,  update: true },
+];
+
 function yesNo(truthy) {
   return truthy ? 'Yes' : 'No';
 }
 
+function getPrefix(access) {
+  // prettier-ignore
+  let prefix = `${yesNo(access.create)}Create${yesNo(access.read)}Read${yesNo(access.update)}Update`;
+  if (Object.prototype.hasOwnProperty.call(access, 'delete')) {
+    prefix = `${prefix}${yesNo(access.delete)}Delete`;
+  }
+  return prefix;
+}
+
 function createListWithStaticAccess(access) {
-  const name = `${yesNo(access.create)}Create${yesNo(access.read)}Read${yesNo(
-    access.update
-  )}Update${yesNo(access.delete)}DeleteStaticList`;
+  const createField = fieldAccess => ({
+    [getPrefix(fieldAccess)]: { type: Text, access: fieldAccess }
+  });
+  const name = `${getPrefix(access)}StaticList`;
   keystone.createList(name, {
     fields: {
       foo: { type: Text },
       zip: { type: Text },
+      ...fieldAccessVariations.reduce(
+        (memo, variation) => Object.assign(memo, createField(variation)),
+        {}
+      ),
     },
     access,
   });
 }
 
 function createListWithImperativeAccess(access) {
-  const name = `${yesNo(access.create)}Create${yesNo(access.read)}Read${yesNo(
-    access.update
-  )}Update${yesNo(access.delete)}DeleteImperativeList`;
+  const createField = fieldAccess => ({
+    [getPrefix(fieldAccess)]: {
+      type: Text,
+      access: {
+        create: () => fieldAccess.create,
+        read: () => fieldAccess.read,
+        update: () => fieldAccess.update,
+        delete: () => fieldAccess.delete,
+      },
+    },
+  });
+  const name = `${getPrefix(access)}ImperativeList`;
   keystone.createList(name, {
     fields: {
       foo: { type: Text },
       zip: { type: Text },
+      ...fieldAccessVariations.reduce(
+        (memo, variation) => Object.assign(memo, createField(variation)),
+        {}
+      ),
     },
     access: {
       create: () => access.create,
@@ -74,9 +132,7 @@ function createListWithImperativeAccess(access) {
 }
 
 function createListWithDeclarativeAccess(access) {
-  const name = `${yesNo(access.create)}Create${yesNo(access.read)}Read${yesNo(
-    access.update
-  )}Update${yesNo(access.delete)}DeleteDeclarativeList`;
+  const name = `${getPrefix(access)}DeclarativeList`;
   keystone.createList(name, {
     fields: {
       foo: { type: Text },
@@ -143,25 +199,6 @@ for(let flags = 0; flags < Math.pow(2, options.length); flags++) {
   }), {}));
 }
 */
-// prettier-ignore
-const listAccessVariations = [
-  { create: false, read: false, update: false, delete: false },
-  { create: true,  read: false, update: false, delete: false },
-  { create: false, read: true,  update: false, delete: false },
-  { create: true,  read: true,  update: false, delete: false },
-  { create: false, read: false, update: true,  delete: false },
-  { create: true,  read: false, update: true,  delete: false },
-  { create: false, read: true,  update: true,  delete: false },
-  { create: true,  read: true,  update: true,  delete: false },
-  { create: false, read: false, update: false, delete: true },
-  { create: true,  read: false, update: false, delete: true },
-  { create: false, read: true,  update: false, delete: true },
-  { create: true,  read: true,  update: false, delete: true },
-  { create: false, read: false, update: true,  delete: true },
-  { create: true,  read: false, update: true,  delete: true },
-  { create: false, read: true,  update: true,  delete: true },
-  { create: true,  read: true,  update: true,  delete: true },
-];
 
 listAccessVariations.forEach(createListWithStaticAccess);
 listAccessVariations.forEach(createListWithImperativeAccess);
