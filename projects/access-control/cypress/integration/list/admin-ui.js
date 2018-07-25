@@ -105,6 +105,51 @@ describe('Access Control Lists > Admin UI', () => {
       });
     });
 
+    describe('read: declarative config', () => {
+      stayLoggedIn('su');
+
+      accessCombinations.filter(({ read }) => read).forEach(access => {
+        it(`shows items when readable: ${JSON.stringify(access)}`, () => {
+          const name = getDeclarativeListName(access);
+          const prettyName = prettyListName(name);
+          const slug = listSlug(name);
+
+          cy.get('body nav').should('contain', prettyName);
+
+          cy.visit(`admin/${slug}`);
+
+          cy
+            .get('body')
+            .should('not.contain', 'You do not have access to this resource');
+          cy.get('body h1').should('contain', prettyName);
+
+          // TODO: Check for list of items too
+        });
+      });
+
+      accessCombinations.filter(({ read }) => !read).forEach(access => {
+        it(`shows an access restricted message when not readable: ${JSON.stringify(
+          access
+        )}`, () => {
+          const name = getDeclarativeListName(access);
+          const prettyName = prettyListName(name);
+          const slug = listSlug(name);
+
+          // Still navigable
+          cy.get('body nav').should('contain', prettyName);
+
+          cy.visit(`admin/${slug}`);
+
+          // But shows an error on attempt to read
+          cy
+            .get('body')
+            .should('contain', 'You do not have access to this resource');
+
+          // TODO: Check no items shown too
+        });
+      });
+    });
+
     describe('read: declarative', () => {
       describe('admin', () => {
         stayLoggedIn('su');
@@ -283,6 +328,52 @@ describe('Access Control Lists > Admin UI', () => {
           });
         });
     });
+
+    describe('declarative', () => {
+      stayLoggedIn('su');
+
+      // NOTE: We only check lists that are readable as we've checked that
+      // non-readable lists show access denied above
+      accessCombinations
+        .filter(({ create, read }) => create && read)
+        .forEach(access => {
+          it(`shows create option when creatable (list view): ${JSON.stringify(
+            access
+          )}`, () => {
+            const name = getDeclarativeListName(access);
+            const slug = listSlug(name);
+
+            cy.visit(`admin/${slug}`);
+
+            // Always shows create button, regardless of dynamic permission result.
+            // ie; The UI has no way of executing the graphql-side permission
+            // query, so must always show the option until the user submits a
+            // graphql request.
+            cy.get('button[appearance="create"]').should('exist');
+          });
+
+          it(`shows create option when creatable (item view): ${JSON.stringify(
+            access
+          )}`, () => {
+            const name = getDeclarativeListName(access);
+            const queryName = `all${name}s`;
+            const slug = listSlug(name);
+
+            return cy
+              .graphql_query(
+                '/admin/api',
+                `query { ${queryName}(first: 1) { id } }`
+              )
+              .then(({ data }) =>
+                cy
+                  .visit(`/admin/${slug}/${data[queryName][0].id}`)
+                  .then(() =>
+                    cy.get('button[appearance="create"]').should('exist')
+                  )
+              );
+          });
+        });
+    });
   });
 
   describe('updating', () => {
@@ -380,6 +471,31 @@ describe('Access Control Lists > Admin UI', () => {
             access
           )}`, () => {
             const name = getImperativeListName(access);
+            const slug = listSlug(name);
+
+            cy.visit(`admin/${slug}`);
+
+            // Always shows create button, regardless of dynamic permission result.
+            // ie; The UI has no way of executing the graphql-side permission
+            // query, so must always show the option until the user submits a
+            // graphql request.
+            cy.get('button[appearance="create"]').should('exist');
+          });
+        });
+    });
+
+    describe('declarative', () => {
+      stayLoggedIn('su');
+
+      // NOTE: We only check lists that are readable as we've checked that
+      // non-readable lists show access denied above
+      accessCombinations
+        .filter(({ create, read }) => create && read)
+        .forEach(access => {
+          it(`shows create option when creatable: ${JSON.stringify(
+            access
+          )}`, () => {
+            const name = getDeclarativeListName(access);
             const slug = listSlug(name);
 
             cy.visit(`admin/${slug}`);
