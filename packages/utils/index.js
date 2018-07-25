@@ -35,5 +35,13 @@ exports.resolveAllKeys = obj => {
   return Promise.all(allPromises).then(() => result);
 };
 
+exports.unique = arr => [...new Set(arr)];
+
+exports.intersection = (array1, array2) =>
+  exports.unique(array1.filter(value => array2.includes(value)));
+
 exports.pick = (obj, keys) =>
   keys.reduce((result, key) => ({ ...result, [key]: obj[key] }), {});
+
+exports.omit = (obj, keys) =>
+  exports.pick(obj, Object.keys(obj).filter(value => !keys.includes(value)));

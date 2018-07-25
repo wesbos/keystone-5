@@ -95,9 +95,9 @@ module.exports = Object.assign(
   accessCombinations.reduce(
     (memo, access) =>
       Object.assign(memo, {
-        [getStaticListName(access)]: [{ foo: 'Hello' }, { foo: 'Hi' }],
-        [getImperativeListName(access)]: [{ foo: 'Hello' }, { foo: 'Hi' }],
-        [getDeclarativeListName(access)]: [{ foo: 'Hello' }, { foo: 'Hi' }],
+        [getStaticListName(access)]: [{ foo: 'Hello', zip: 'yo' }, { foo: 'Hi', zip: 'yo' }],
+        [getImperativeListName(access)]: [{ foo: 'Hello', zip: 'yo' }, { foo: 'Hi', zip: 'yo' }],
+        [getDeclarativeListName(access)]: [{ foo: 'Hello', zip: 'yo' }, { foo: 'Hi', zip: 'yo' }],
       }),
     {}
   )

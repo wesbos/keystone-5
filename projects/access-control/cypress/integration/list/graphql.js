@@ -3,6 +3,7 @@ const {
   getStaticListName,
   getImperativeListName,
   getDeclarativeListName,
+  listNameToCollectionName,
   accessCombinations,
   stayLoggedIn,
 } = require('../util');
@@ -882,17 +883,47 @@ describe('Access Control, List, GraphQL', () => {
 
             it(`single allowed: ${JSON.stringify(access)}`, () => {
               const singleQueryName = getDeclarativeListName(access);
+              const collection = listNameToCollectionName(singleQueryName);
+
+              cy.task('mongoFind', { collection, query: {} }).then(items => {
+                // filter items for foo: 'Hello', then pick THAT id.
+                const item = items.find(({ foo }) => foo === 'Hello');
+                return cy
+                  .graphql_query(
+                    '/admin/api',
+                    `query { ${singleQueryName}(where: { id: "${item.id}" }) { id } }`
+                  )
+                  .then(({ data, errors }) => {
+                    expect(errors, 'single query Errors').to.equal(undefined);
+                    expect(data, 'single query data').to.have.deep.property(
+                      `${singleQueryName}.id`,
+                      item.id,
+                    );
+                  });
+              });
+            });
+
+            it(`single denied when filtered out: ${JSON.stringify(access)}`, () => {
+              const singleQueryName = getDeclarativeListName(access);
               cy
                 .graphql_query(
                   '/admin/api',
                   `query { ${singleQueryName}(where: { id: "${FAKE_ID}" }) { id } }`
                 )
                 .then(({ data, errors }) => {
-                  expect(errors, 'single query Errors').to.equal(undefined);
-                  expect(
-                    data[singleQueryName],
-                    `meta data.${singleQueryName}`
-                  ).to.equal(null);
+                  expect(data, 'data').to.equal(undefined);
+                  expect(errors, 'error name').to.have.deep.property(
+                    '[0].name',
+                    'AccessDeniedError'
+                  );
+                  expect(errors, 'error message').to.have.deep.property(
+                    '[0].message',
+                    'You do not have access to this resource'
+                  );
+                  expect(errors, 'error path').to.have.deep.property(
+                    '[0].path[0]',
+                    singleQueryName
+                  );
                 });
             });
           });
@@ -901,26 +932,55 @@ describe('Access Control, List, GraphQL', () => {
         describe('update', () => {
           accessCombinations.filter(({ update }) => update).forEach(access => {
             it(`allowed: ${JSON.stringify(access)}`, () => {
-              const updateMutationName = `update${getDeclarativeListName(access)}`;
+              const list = getDeclarativeListName(access);
+              const collection = listNameToCollectionName(list);
+
+              cy.task('mongoFind', { collection, query: {} }).then(items => {
+                // filter items for foo: 'Hello', then pick THAT id.
+                const item = items.find(({ foo }) => foo === 'Hello');
+                const updateMutationName = `update${list}`;
+
+                return cy
+                  .graphql_mutate(
+                    '/admin/api',
+                    `mutation { ${updateMutationName}(id: "${item.id}", data: { zip: "bar" }) { id } }`
+                  )
+                  .then(({ data, errors }) => {
+                    expect(errors, 'update mutation Errors').to.equal(undefined);
+                    expect(data, 'update mutation data').to.have.deep.property(
+                      `${updateMutationName}.id`,
+                      item.id,
+                    );
+                    //expect(data, 'update mutation data').to.have.deep.property(
+                    //  `${updateMutationName}.zip`,
+                    //  'bar',
+                    //);
+                  });
+              });
+            });
+
+            it(`denied when filtered out: ${JSON.stringify(access)}`, () => {
+              const list = getDeclarativeListName(access);
+              const updateMutationName = `update${list}`;
+
               cy
                 .graphql_mutate(
                   '/admin/api',
-                  `mutation { ${updateMutationName}(id: "${FAKE_ID}", data: { foo: "bar" }) { id } }`
+                  `mutation { ${updateMutationName}(id: "${FAKE_ID}", data: { zip: "bar" }) { id } }`
                 )
-                .then(({ errors }) => {
-                  // It errors because it's a fake ID.
-                  // That's ok, as long as it's not an AccessDeniedError.
-                  // We test that updates actually work elsewhere.
-                  expect(
-                    errors[0],
-                    'update mutation Errors'
-                  ).to.not.have.ownProperty('name');
-                  expect(
-                    errors[0],
-                    'update mutation Errors'
-                  ).to.not.have.property(
-                    'message',
+                .then(({ data, errors }) => {
+                  expect(data, 'data').to.equal(undefined);
+                  expect(errors, 'error name').to.have.deep.property(
+                    '[0].name',
+                    'AccessDeniedError'
+                  );
+                  expect(errors, 'error message').to.have.deep.property(
+                    '[0].message',
                     'You do not have access to this resource'
+                  );
+                  expect(errors, 'error path').to.have.deep.property(
+                    '[0].path[0]',
+                    updateMutationName
                   );
                 });
             });
@@ -930,33 +990,77 @@ describe('Access Control, List, GraphQL', () => {
         describe('delete', () => {
           accessCombinations.filter(access => access.delete).forEach(access => {
             it(`single allowed: ${JSON.stringify(access)}`, () => {
-              const deleteMutationName = `delete${getDeclarativeListName(access)}`;
+              const list = getDeclarativeListName(access);
+              const collection = listNameToCollectionName(list);
+              // First, insert an item that can be deleted
+              cy.task('mongoInsertOne', { collection, document: { foo: 'Hello', zip: 'zap' } }).then(({ id }) => {
+
+                const deleteMutationName = `delete${list}`;
+                return cy
+                  .graphql_mutate(
+                    '/admin/api',
+                    `mutation { ${deleteMutationName}(id: "${id}") { id } }`
+                  )
+                  .then(({ data, errors }) => {
+                    expect(errors, 'delete mutation Errors').to.equal(undefined);
+                    expect(data, 'deleteMutation data').to.have.ownProperty(
+                      deleteMutationName
+                    );
+                    expect(data, 'deleteMutation id').to.have.deep.property(
+                      `${deleteMutationName}.id`,
+                      id,
+                    );
+                  });
+              });
+            });
+
+            it(`single denied when filtered out: ${JSON.stringify(access)}`, () => {
+              const list = getDeclarativeListName(access);
+              const deleteMutationName = `delete${list}`;
+
               cy
                 .graphql_mutate(
                   '/admin/api',
                   `mutation { ${deleteMutationName}(id: "${FAKE_ID}") { id } }`
                 )
                 .then(({ data, errors }) => {
-                  expect(errors, 'delete mutation Errors').to.equal(undefined);
-                  expect(data, 'deleteMutation data').to.have.ownProperty(
+                  expect(data, 'data').to.equal(undefined);
+                  expect(errors, 'error name').to.have.deep.property(
+                    '[0].name',
+                    'AccessDeniedError'
+                  );
+                  expect(errors, 'error message').to.have.deep.property(
+                    '[0].message',
+                    'You do not have access to this resource'
+                  );
+                  expect(errors, 'error path').to.have.deep.property(
+                    '[0].path[0]',
                     deleteMutationName
                   );
                 });
             });
 
             it(`multi allowed: ${JSON.stringify(access)}`, () => {
-              const multiDeleteMutationName = `delete${getDeclarativeListName(access)}s`;
-              cy
-                .graphql_mutate(
-                  '/admin/api',
-                  `mutation { ${multiDeleteMutationName}(ids: ["${FAKE_ID}"]) { id } }`
-                )
-                .then(({ data, errors }) => {
-                  expect(errors, 'delete mutation Errors').to.equal(undefined);
-                  expect(data, 'deleteMutation data').to.have.ownProperty(
-                    multiDeleteMutationName
-                  );
+              const list = getDeclarativeListName(access);
+              const collection = listNameToCollectionName(list);
+              // First, insert an item that can be deleted
+              cy.task('mongoInsertOne', { collection, document: { foo: 'Hello', zip: 'zap' } }).then(({ id: id1 }) => {
+                return cy.task('mongoInsertOne', { collection, document: { foo: 'Hello', zip: 'zing' } }).then(({ id: id2 }) => {
+
+                  const multiDeleteMutationName = `delete${list}s`;
+                  return cy
+                    .graphql_mutate(
+                      '/admin/api',
+                      `mutation { ${multiDeleteMutationName}(ids: ["${id1}", "${id2}"]) { id } }`
+                    )
+                    .then(({ data, errors }) => {
+                      expect(errors, 'delete mutation Errors').to.equal(undefined);
+                      expect(data, 'deleteMutation data').to.have.ownProperty(
+                        multiDeleteMutationName
+                      );
+                    });
                 });
+              });
             });
           });
         });

@@ -2,6 +2,8 @@ const pluralize = require('pluralize');
 const {
   resolveAllKeys,
   omit,
+  unique,
+  intersection,
 } = require('@keystonejs/utils');
 
 const {
@@ -10,14 +12,13 @@ const {
   mergeWhereClause,
 } = require('@keystonejs/access-control');
 
+const logger = require('@keystonejs/logger');
+
+const graphqlLogger = logger('graphql');
+
 const { AccessDeniedError } = require('./graphqlErrors');
 
 const upcase = str => str.substr(0, 1).toUpperCase() + str.substr(1);
-
-const unique = arr => [...new Set(arr)];
-
-const intersection = (array1, array2) =>
-  unique(array1.filter(value => array2.includes(value)));
 
 const keyToLabel = str =>
   str
@@ -323,7 +324,7 @@ module.exports = class List {
           return this.adapter.itemsQuery(queryArgs);
         },
 
-        [this.listQueryMetaName]: (_, args, { authedItem, authedListKey }) => {
+        [this.listQueryMetaName]: (_, args, context) => {
           return {
             // Return these as functions so they're lazily evaluated depending
             // on what the user requested
@@ -340,8 +341,8 @@ module.exports = class List {
                     name: this.listQueryMetaName,
                   },
                   internalData: {
-                    authedId: authedItem && authedItem.id,
-                    authedListKey: authedListKey,
+                    authedId: context.authedItem && context.authedItem.id,
+                    authedListKey: context.authedListKey,
                   },
                 });
               }
@@ -370,7 +371,13 @@ module.exports = class List {
         },
 
         [this.itemQueryName]: async (_, { where: { id } }, context) => {
-          return this.performActionOnItemWithAccessControl(
+          graphqlLogger.info({
+            id,
+            operation: 'read',
+            type: 'query',
+            name: this.itemQueryName,
+          }, 'Start query')
+          const result = await this.performActionOnItemWithAccessControl(
             {
               id,
               context,
@@ -382,6 +389,13 @@ module.exports = class List {
             },
             item => item,
           );
+          graphqlLogger.info({
+            id,
+            operation: 'read',
+            type: 'query',
+            name: this.itemQueryName,
+          }, 'End query')
+          return result;
         },
       };
     }
@@ -618,6 +632,11 @@ module.exports = class List {
 
   async performActionOnItemWithAccessControl({ operation, id, context, errorData }, action) {
     const throwAccessDenied = () => {
+      graphqlLogger.info({
+        id,
+        operation,
+        ...errorData,
+      }, 'Access Denied')
       // If the client handles errors correctly, it should be able to
       // receive partial data (for the fields the user has access to),
       // and then an `errors` array of AccessDeniedError's
@@ -633,6 +652,12 @@ module.exports = class List {
 
     const access = context.getAccessControlForUser(this.key, operation);
     if (!access) {
+      graphqlLogger.info({
+        id,
+        operation,
+        access,
+        ...errorData,
+      }, 'Access statically or implicitly denied')
       throwAccessDenied();
     }
 
@@ -656,6 +681,12 @@ module.exports = class List {
       (access.id_in && !access.id_in.includes(id)) ||
       (access.id_not_in && access.id_not_in.includes(id))
     ) {
+      graphqlLogger.info({
+        id,
+        operation,
+        access,
+        ...errorData,
+      }, 'Item excluded this id from filters')
       throwAccessDenied();
     }
 
@@ -684,6 +715,12 @@ module.exports = class List {
       // that return null do not exist). Similar to how S3 returns 403's
       // always instead of ever returning 404's.
       // Our version is to always throw if not found.
+      graphqlLogger.info({
+        id,
+        operation,
+        access,
+        ...errorData,
+      }, 'Zero items found')
       throwAccessDenied();
     }
 
@@ -776,7 +813,7 @@ module.exports = class List {
     // in returning the result of the query here, because if no items match, we
     // return an empty array regarless of if that's because of lack of
     // permissions or because of those items don't exist.
-    return action(items[0]);
+    return action(items);
   }
 
   getAdminMutationResolvers() {
@@ -788,7 +825,7 @@ module.exports = class List {
         { data },
         context
       ) => {
-        const access = context.getAccessControlForUser(this.key, 'read');
+        const access = context.getAccessControlForUser(this.key, 'create');
         if (!access) {
           throw new AccessDeniedError({
             data: {

@@ -11,7 +11,7 @@ const initialData = require('./data');
 const { MongooseAdapter } = require('@keystonejs/adapter-mongoose');
 
 const keystone = new Keystone({
-  name: 'Cypress Test Project For Access Control',
+  name: process.env.PROJECT_NAME,
   adapter: new MongooseAdapter(),
 });
 
@@ -49,6 +49,7 @@ function createListWithStaticAccess(access) {
   keystone.createList(name, {
     fields: {
       foo: { type: Text },
+      zip: { type: Text },
     },
     access,
   });
@@ -61,6 +62,7 @@ function createListWithImperativeAccess(access) {
   keystone.createList(name, {
     fields: {
       foo: { type: Text },
+      zip: { type: Text },
     },
     access: {
       create: () => access.create,
@@ -78,6 +80,7 @@ function createListWithDeclarativeAccess(access) {
   keystone.createList(name, {
     fields: {
       foo: { type: Text },
+      zip: { type: Text },
     },
     access: {
       create: ({ authentication: { item, listKey } }) =>

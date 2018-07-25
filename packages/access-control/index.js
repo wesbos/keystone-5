@@ -95,7 +95,7 @@ module.exports = {
       ...args,
       where: {
         ...args.where,
-        where,
+        ...where,
       },
     };
   },
@@ -107,7 +107,7 @@ module.exports = {
     }
 
     const result = access[operation]({
-      authentication: authentication.item ? authentication : null
+      authentication: authentication.item ? authentication : {}
     });
 
     const type = getType(result);

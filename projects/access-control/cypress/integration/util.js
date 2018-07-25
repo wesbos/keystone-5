@@ -5,6 +5,10 @@ function yesNo(truthy) {
   return truthy ? 'Yes' : 'No';
 }
 
+function identity(value) {
+  return value;
+}
+
 // memoize to avoid a circular dependency
 const usersByLevel = memoize(() => {
   const { User: users } = require('../../data');
@@ -32,6 +36,10 @@ module.exports = {
     return `${yesNo(access.create)}Create${yesNo(access.read)}Read${yesNo(
       access.update
     )}Update${yesNo(access.delete)}DeleteDeclarativeList`;
+  },
+
+  listNameToCollectionName(name) {
+    return `${name.toLowerCase()}s`;
   },
 
   // prettier-ignore

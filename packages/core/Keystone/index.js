@@ -103,6 +103,8 @@ module.exports = class Keystone {
 
     listTypes.push(`
       # NOTE: Can be JSON, or a Boolean/Int/String
+      # Why not a union? GraphQL doesn't support a union including a scalar
+      # (https://github.com/facebook/graphql/issues/215)
       scalar JSON
     `);
 
