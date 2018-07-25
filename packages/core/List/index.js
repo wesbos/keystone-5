@@ -570,7 +570,7 @@ module.exports = class List {
       mutations.push(`
         ${this.deleteManyMutationName}(
           ids: [String!]
-        ): ${this.key}
+        ): [${this.key}]
       `);
     }
 
@@ -978,7 +978,9 @@ module.exports = class List {
               name: this.deleteManyMutationName,
             }
           },
-          (items) => Promise.all(items.map(({ id }) => this.adapter.delete(id))),
+          (items) => Promise.all(items.map(item =>
+            this.adapter.delete(item.id).then(() => item)
+          )),
         );
       };
     }

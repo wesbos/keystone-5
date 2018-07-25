@@ -9,6 +9,7 @@ const {
 } = require('../util');
 
 const FAKE_ID = '5b3eabd9e9f2e3e4866742ea';
+const FAKE_ID_2 = '5b3eabd9e9f2e3e4866742eb';
 
 describe('Access Control, List, GraphQL', () => {
   describe('Schema', () => {
@@ -926,6 +927,20 @@ describe('Access Control, List, GraphQL', () => {
                   );
                 });
             });
+
+            it(`all returns empty array when filtered out: ${JSON.stringify(access)}`, () => {
+              const allQueryName = `all${getDeclarativeListName(access)}s`;
+              cy
+                .graphql_query(
+                  '/admin/api',
+                  `query { ${allQueryName}(where: { id_in: ["${FAKE_ID}", "${FAKE_ID_2}"] }) { id } }`
+                )
+                .then(({ data, errors }) => {
+                  expect(errors, 'multi query denied Errors').to.equal(undefined);
+                  expect(data, 'multi query denied data').to.have.property(allQueryName);
+                  expect(data[allQueryName], 'multi query denied data').to.deep.equal([]);
+                });
+            });
           });
         });
 
@@ -1061,6 +1076,22 @@ describe('Access Control, List, GraphQL', () => {
                     });
                 });
               });
+            });
+
+            it(`multi denied when filtered out: ${JSON.stringify(access)}`, () => {
+              const list = getDeclarativeListName(access);
+              const multiDeleteMutationName = `delete${list}s`;
+
+              cy
+                .graphql_mutate(
+                  '/admin/api',
+                  `mutation { ${multiDeleteMutationName}(ids: ["${FAKE_ID}", "${FAKE_ID_2}"]) { id } }`
+                )
+                .then(({ data, errors }) => {
+                  expect(errors, 'multi query denied Errors').to.equal(undefined);
+                  expect(data, 'multi query denied data').to.have.property(multiDeleteMutationName);
+                  expect(data[multiDeleteMutationName], 'multi query denied data').to.deep.equal([]);
+                });
             });
           });
         });
