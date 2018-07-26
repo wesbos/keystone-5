@@ -2,7 +2,7 @@
 const {
   getStaticListName,
   getImperativeListName,
-  accessCombinations,
+  fieldAccessVariations,
   stayLoggedIn,
 } = require('../util');
 
@@ -64,7 +64,7 @@ describe('Access Control Fields > Admin UI', () => {
 
       // NOTE: We only check lists that are readable as we've checked that
       // non-readable lists show access denied above
-      accessCombinations
+      fieldAccessVariations
         .filter(({ create, read }) => create && read)
         .forEach(access => {
           it(`shows creatable fields: ${JSON.stringify(access)}`, () => {
@@ -85,7 +85,7 @@ describe('Access Control Fields > Admin UI', () => {
           });
         });
 
-      accessCombinations
+      fieldAccessVariations
         .filter(({ create, read }) => !create && read)
         .forEach(access => {
           it(`does not show fields when not creatable: ${JSON.stringify(
@@ -114,7 +114,7 @@ describe('Access Control Fields > Admin UI', () => {
 
       // NOTE: We only check lists that are readable as we've checked that
       // non-readable lists show access denied above
-      accessCombinations
+      fieldAccessVariations
         .filter(({ create, read }) => create && read)
         .forEach(access => {
           it(`shows create option when at least one field creatable (list view): ${JSON.stringify(
@@ -147,7 +147,7 @@ describe('Access Control Fields > Admin UI', () => {
 
       // NOTE: We only check lists that are readable as we've checked that
       // non-readable lists show access denied above
-      accessCombinations
+      fieldAccessVariations
         .filter(({ create, read }) => create && read)
         .forEach(access => {
           it.skip(`does not show create option when no fields are creatable (list view): ${JSON.stringify(
@@ -187,7 +187,7 @@ describe('Access Control Fields > Admin UI', () => {
 
       // NOTE: We only check lists that are readable as we've checked that
       // non-readable lists show access denied above
-      accessCombinations
+      fieldAccessVariations
         .filter(({ update, read }) => update && read)
         .forEach(access => {
           it(`shows updatable fields as inputs: ${JSON.stringify(
@@ -218,7 +218,7 @@ describe('Access Control Fields > Admin UI', () => {
           });
         });
 
-      accessCombinations
+      fieldAccessVariations
         .filter(({ update, read }) => !update && read)
         .forEach(access => {
           it.skip(`does not show input fields when not updatable: ${JSON.stringify(
@@ -257,7 +257,7 @@ describe('Access Control Fields > Admin UI', () => {
 
       // NOTE: We only check lists that are readable as we've checked that
       // non-readable lists show access denied above
-      accessCombinations
+      fieldAccessVariations
         .filter(({ create, read }) => create && read)
         .forEach(access => {
           it(`shows update option when updatable: ${JSON.stringify(

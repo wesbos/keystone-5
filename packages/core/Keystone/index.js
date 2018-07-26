@@ -19,7 +19,7 @@ const trim = str => str.replace(/\n\s*\n/g, '\n');
 module.exports = class Keystone {
   constructor(config) {
     this.config = {
-      defaultAccess: true,
+      defaultAccess: { list: true, field: true },
       ...config,
     };
     this.auth = {};

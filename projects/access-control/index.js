@@ -4,6 +4,15 @@ const { Text, Password, Select, Relationship } = require('@keystonejs/fields');
 const { WebServer } = require('@keystonejs/server');
 const PasswordAuthStrategy = require('@keystonejs/core/auth/Password');
 
+const {
+  getStaticListName,
+  getImperativeListName,
+  getDeclarativeListName,
+  getFieldName,
+  listAccessVariations,
+  fieldAccessVariations,
+} = require('./cypress/integration/util');
+
 const { port, staticRoute, staticPath } = require('./config');
 
 const initialData = require('./data');
@@ -38,56 +47,11 @@ keystone.createList('User', {
   },
 });
 
-// prettier-ignore
-const listAccessVariations = [
-  { create: false, read: false, update: false, delete: false },
-  { create: true,  read: false, update: false, delete: false },
-  { create: false, read: true,  update: false, delete: false },
-  { create: true,  read: true,  update: false, delete: false },
-  { create: false, read: false, update: true,  delete: false },
-  { create: true,  read: false, update: true,  delete: false },
-  { create: false, read: true,  update: true,  delete: false },
-  { create: true,  read: true,  update: true,  delete: false },
-  { create: false, read: false, update: false, delete: true },
-  { create: true,  read: false, update: false, delete: true },
-  { create: false, read: true,  update: false, delete: true },
-  { create: true,  read: true,  update: false, delete: true },
-  { create: false, read: false, update: true,  delete: true },
-  { create: true,  read: false, update: true,  delete: true },
-  { create: false, read: true,  update: true,  delete: true },
-  { create: true,  read: true,  update: true,  delete: true },
-];
-
-const fieldAccessVariations = [
-  { create: false, read: false, update: false },
-  { create: true,  read: false, update: false },
-  { create: false, read: true,  update: false },
-  { create: true,  read: true,  update: false },
-  { create: false, read: false, update: true },
-  { create: true,  read: false, update: true },
-  { create: false, read: true,  update: true },
-  { create: true,  read: true,  update: true },
-];
-
-function yesNo(truthy) {
-  return truthy ? 'Yes' : 'No';
-}
-
-function getPrefix(access) {
-  // prettier-ignore
-  let prefix = `${yesNo(access.create)}Create${yesNo(access.read)}Read${yesNo(access.update)}Update`;
-  if (Object.prototype.hasOwnProperty.call(access, 'delete')) {
-    prefix = `${prefix}${yesNo(access.delete)}Delete`;
-  }
-  return prefix;
-}
-
 function createListWithStaticAccess(access) {
   const createField = fieldAccess => ({
-    [getPrefix(fieldAccess)]: { type: Text, access: fieldAccess }
+    [getFieldName(fieldAccess)]: { type: Text, access: fieldAccess }
   });
-  const name = `${getPrefix(access)}StaticList`;
-  keystone.createList(name, {
+  keystone.createList(getStaticListName(access), {
     fields: {
       foo: { type: Text },
       zip: { type: Text },
@@ -102,7 +66,7 @@ function createListWithStaticAccess(access) {
 
 function createListWithImperativeAccess(access) {
   const createField = fieldAccess => ({
-    [getPrefix(fieldAccess)]: {
+    [getFieldName(fieldAccess)]: {
       type: Text,
       access: {
         create: () => fieldAccess.create,
@@ -112,8 +76,7 @@ function createListWithImperativeAccess(access) {
       },
     },
   });
-  const name = `${getPrefix(access)}ImperativeList`;
-  keystone.createList(name, {
+  keystone.createList(getImperativeListName(access), {
     fields: {
       foo: { type: Text },
       zip: { type: Text },
@@ -132,8 +95,7 @@ function createListWithImperativeAccess(access) {
 }
 
 function createListWithDeclarativeAccess(access) {
-  const name = `${getPrefix(access)}DeclarativeList`;
-  keystone.createList(name, {
+  keystone.createList(getDeclarativeListName(access), {
     fields: {
       foo: { type: Text },
       zip: { type: Text },

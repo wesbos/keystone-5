@@ -11,7 +11,7 @@ class Field {
       listKey,
       listAdapter,
       fieldAdapterClass,
-      defaultAccess = [],
+      defaultAccess,
     }
   ) {
     this.path = path;
@@ -26,23 +26,9 @@ class Field {
       config
     );
 
-    const accessTypes = ['read', 'update'];
-
-    // Merge the default and config access together
-    this.acl = {
-      ...pick(defaultAccess, accessTypes),
-      ...parseFieldAccess(config.access, {
-        accessTypes,
-        listKey,
-        path,
-      }),
-    };
-
-    // TODO
-    this.access = {
-      ...parseFieldAccess(),
-    };
+    this.access = parseFieldAccess({ listKey, fieldKey: path, defaultAccess, access: config.access });
   }
+
   getGraphqlSchema() {
     if (!this.graphQLType) {
       throw new Error(

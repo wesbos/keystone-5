@@ -4,7 +4,7 @@ const {
   getImperativeListName,
   getDeclarativeListName,
   listNameToCollectionName,
-  accessCombinations,
+  listAccessVariations,
   stayLoggedIn,
 } = require('../util');
 
@@ -59,9 +59,12 @@ describe('Access Control, List, GraphQL', () => {
     );
 
     describe('static', () => {
-      accessCombinations.forEach(access => {
+      it('sanity check', () => {
+        sanityCheckGraphQL();
+      });
+
+      listAccessVariations.forEach(access => {
         it(JSON.stringify(access), () => {
-          sanityCheckGraphQL();
           const name = getStaticListName(access);
 
           // The type is used in all the queries and mutations as a return type
@@ -113,10 +116,12 @@ describe('Access Control, List, GraphQL', () => {
     });
 
     describe('imperative', () => {
-      accessCombinations.forEach(access => {
-        it(JSON.stringify(access), () => {
-          sanityCheckGraphQL();
+      it('sanity check', () => {
+        sanityCheckGraphQL();
+      });
 
+      listAccessVariations.forEach(access => {
+        it(JSON.stringify(access), () => {
           const name = getImperativeListName(access);
 
           // All types, etc, are included when imperative no matter the config (because
@@ -137,10 +142,12 @@ describe('Access Control, List, GraphQL', () => {
     });
 
     describe('declarative', () => {
-      accessCombinations.forEach(access => {
-        it(JSON.stringify(access), () => {
-          sanityCheckGraphQL();
+      it('sanity check', () => {
+        sanityCheckGraphQL();
+      });
 
+      listAccessVariations.forEach(access => {
+        it(JSON.stringify(access), () => {
           const name = getDeclarativeListName(access);
 
           // All types, etc, are included when declarative no matter the config (because
@@ -170,7 +177,7 @@ describe('Access Control, List, GraphQL', () => {
         });
 
         describe('create', () => {
-          accessCombinations.filter(({ create }) => !create).forEach(access => {
+          listAccessVariations.filter(({ create }) => !create).forEach(access => {
             it(`denied: ${JSON.stringify(access)}`, () => {
               const createMutationName = `create${getImperativeListName(access)}`;
 
@@ -198,7 +205,7 @@ describe('Access Control, List, GraphQL', () => {
         });
 
         describe('query', () => {
-          accessCombinations.filter(({ read }) => !read).forEach(access => {
+          listAccessVariations.filter(({ read }) => !read).forEach(access => {
             it(`'all' denied: ${JSON.stringify(access)}`, () => {
               const allQueryName = `all${getImperativeListName(access)}s`;
               cy
@@ -265,7 +272,7 @@ describe('Access Control, List, GraphQL', () => {
         });
 
         describe('update', () => {
-          accessCombinations.filter(({ update }) => !update).forEach(access => {
+          listAccessVariations.filter(({ update }) => !update).forEach(access => {
             it(`denies: ${JSON.stringify(access)}`, () => {
               const updateMutationName = `update${getImperativeListName(access)}`;
               cy
@@ -292,7 +299,7 @@ describe('Access Control, List, GraphQL', () => {
         });
 
         describe('delete', () => {
-          accessCombinations.filter(access => !access.delete).forEach(access => {
+          listAccessVariations.filter(access => !access.delete).forEach(access => {
             it(`single denied: ${JSON.stringify(access)}`, () => {
               const deleteMutationName = `delete${getImperativeListName(access)}`;
               cy
@@ -346,7 +353,7 @@ describe('Access Control, List, GraphQL', () => {
         stayLoggedIn('su');
 
         describe('create', () => {
-          accessCombinations.filter(({ create }) => create).forEach(access => {
+          listAccessVariations.filter(({ create }) => create).forEach(access => {
             it(`allowed: ${JSON.stringify(access)}`, () => {
               const createMutationName = `create${getImperativeListName(access)}`;
 
@@ -367,7 +374,7 @@ describe('Access Control, List, GraphQL', () => {
         });
 
         describe('query', () => {
-          accessCombinations.filter(({ read }) => read).forEach(access => {
+          listAccessVariations.filter(({ read }) => read).forEach(access => {
             it(`'all' allowed: ${JSON.stringify(access)}`, () => {
               const allQueryName = `all${getImperativeListName(access)}s`;
               cy
@@ -413,7 +420,7 @@ describe('Access Control, List, GraphQL', () => {
         });
 
         describe('update', () => {
-          accessCombinations.filter(({ update }) => update).forEach(access => {
+          listAccessVariations.filter(({ update }) => update).forEach(access => {
             it(`allowed: ${JSON.stringify(access)}`, () => {
               const updateMutationName = `update${getImperativeListName(access)}`;
               cy
@@ -442,7 +449,7 @@ describe('Access Control, List, GraphQL', () => {
         });
 
         describe('delete', () => {
-          accessCombinations.filter(access => access.delete).forEach(access => {
+          listAccessVariations.filter(access => access.delete).forEach(access => {
             it(`single allowed: ${JSON.stringify(access)}`, () => {
               const deleteMutationName = `delete${getImperativeListName(access)}`;
               cy
@@ -479,7 +486,7 @@ describe('Access Control, List, GraphQL', () => {
           before(() => cy.visit('/admin'));
 
           describe('create', () => {
-            accessCombinations.filter(({ create }) => !create).forEach(access => {
+            listAccessVariations.filter(({ create }) => !create).forEach(access => {
               it(`denied: ${JSON.stringify(access)}`, () => {
                 const createMutationName = `create${getImperativeListName(access)}`;
 
@@ -507,7 +514,7 @@ describe('Access Control, List, GraphQL', () => {
           });
 
           describe('query', () => {
-            accessCombinations.filter(({ read }) => !read).forEach(access => {
+            listAccessVariations.filter(({ read }) => !read).forEach(access => {
               it(`'all' denied: ${JSON.stringify(access)}`, () => {
                 const allQueryName = `all${getImperativeListName(access)}s`;
                 cy
@@ -574,7 +581,7 @@ describe('Access Control, List, GraphQL', () => {
           });
 
           describe('update', () => {
-            accessCombinations.filter(({ update }) => !update).forEach(access => {
+            listAccessVariations.filter(({ update }) => !update).forEach(access => {
               it(`denies: ${JSON.stringify(access)}`, () => {
                 const updateMutationName = `update${getImperativeListName(access)}`;
                 cy
@@ -601,7 +608,7 @@ describe('Access Control, List, GraphQL', () => {
           });
 
           describe('delete', () => {
-            accessCombinations.filter(access => !access.delete).forEach(access => {
+            listAccessVariations.filter(access => !access.delete).forEach(access => {
               it(`single denied: ${JSON.stringify(access)}`, () => {
                 const deleteMutationName = `delete${getImperativeListName(access)}`;
                 cy
@@ -658,7 +665,7 @@ describe('Access Control, List, GraphQL', () => {
         before(() => cy.visit('/admin'));
 
         describe('create', () => {
-          accessCombinations.filter(({ create }) => create).forEach(access => {
+          listAccessVariations.filter(({ create }) => create).forEach(access => {
             it(`denied: ${JSON.stringify(access)}`, () => {
               const createMutationName = `create${getDeclarativeListName(access)}`;
 
@@ -686,7 +693,7 @@ describe('Access Control, List, GraphQL', () => {
         });
 
         describe('query', () => {
-          accessCombinations.filter(({ read }) => read).forEach(access => {
+          listAccessVariations.filter(({ read }) => read).forEach(access => {
             it(`'all' denied: ${JSON.stringify(access)}`, () => {
               const allQueryName = `all${getDeclarativeListName(access)}s`;
               cy
@@ -753,7 +760,7 @@ describe('Access Control, List, GraphQL', () => {
         });
 
         describe('update', () => {
-          accessCombinations.filter(({ update }) => update).forEach(access => {
+          listAccessVariations.filter(({ update }) => update).forEach(access => {
             it(`denied: ${JSON.stringify(access)}`, () => {
               const updateMutationName = `update${getDeclarativeListName(access)}`;
               cy
@@ -780,7 +787,7 @@ describe('Access Control, List, GraphQL', () => {
         });
 
         describe('delete', () => {
-          accessCombinations.filter(access => access.delete).forEach(access => {
+          listAccessVariations.filter(access => access.delete).forEach(access => {
             it(`single denied: ${JSON.stringify(access)}`, () => {
               const deleteMutationName = `delete${getDeclarativeListName(access)}`;
               cy
@@ -834,7 +841,7 @@ describe('Access Control, List, GraphQL', () => {
         stayLoggedIn('su');
 
         describe('create', () => {
-          accessCombinations.filter(({ create }) => create).forEach(access => {
+          listAccessVariations.filter(({ create }) => create).forEach(access => {
             it(`allowed: ${JSON.stringify(access)}`, () => {
               const createMutationName = `create${getDeclarativeListName(access)}`;
 
@@ -855,7 +862,7 @@ describe('Access Control, List, GraphQL', () => {
         });
 
         describe('query', () => {
-          accessCombinations.filter(({ read }) => read).forEach(access => {
+          listAccessVariations.filter(({ read }) => read).forEach(access => {
             it(`'all' allowed: ${JSON.stringify(access)}`, () => {
               const allQueryName = `all${getDeclarativeListName(access)}s`;
               cy
@@ -945,7 +952,7 @@ describe('Access Control, List, GraphQL', () => {
         });
 
         describe('update', () => {
-          accessCombinations.filter(({ update }) => update).forEach(access => {
+          listAccessVariations.filter(({ update }) => update).forEach(access => {
             it(`allowed: ${JSON.stringify(access)}`, () => {
               const list = getDeclarativeListName(access);
               const collection = listNameToCollectionName(list);
@@ -1003,7 +1010,7 @@ describe('Access Control, List, GraphQL', () => {
         });
 
         describe('delete', () => {
-          accessCombinations.filter(access => access.delete).forEach(access => {
+          listAccessVariations.filter(access => access.delete).forEach(access => {
             it(`single allowed: ${JSON.stringify(access)}`, () => {
               const list = getDeclarativeListName(access);
               const collection = listNameToCollectionName(list);
@@ -1100,7 +1107,7 @@ describe('Access Control, List, GraphQL', () => {
           before(() => cy.visit('/admin'));
 
           describe('create', () => {
-            accessCombinations.filter(({ create }) => !create).forEach(access => {
+            listAccessVariations.filter(({ create }) => !create).forEach(access => {
               it(`denied: ${JSON.stringify(access)}`, () => {
                 const createMutationName = `create${getDeclarativeListName(access)}`;
 
@@ -1128,7 +1135,7 @@ describe('Access Control, List, GraphQL', () => {
           });
 
           describe('query', () => {
-            accessCombinations.filter(({ read }) => !read).forEach(access => {
+            listAccessVariations.filter(({ read }) => !read).forEach(access => {
               it(`'all' denied: ${JSON.stringify(access)}`, () => {
                 const allQueryName = `all${getDeclarativeListName(access)}s`;
                 cy
@@ -1196,7 +1203,7 @@ describe('Access Control, List, GraphQL', () => {
           });
 
           describe('update', () => {
-            accessCombinations.filter(({ update }) => !update).forEach(access => {
+            listAccessVariations.filter(({ update }) => !update).forEach(access => {
               it(`denies: ${JSON.stringify(access)}`, () => {
                 const updateMutationName = `update${getDeclarativeListName(access)}`;
                 cy
@@ -1223,7 +1230,7 @@ describe('Access Control, List, GraphQL', () => {
           });
 
           describe('delete', () => {
-            accessCombinations.filter(access => !access.delete).forEach(access => {
+            listAccessVariations.filter(access => !access.delete).forEach(access => {
               it(`single denied: ${JSON.stringify(access)}`, () => {
                 const deleteMutationName = `delete${getDeclarativeListName(access)}`;
                 cy

@@ -86,7 +86,7 @@ module.exports = class List {
     this.access = parseListAccess({
       listKey: key,
       access: config.access,
-      defaultAccess: keystone.config.defaultAccess
+      defaultAccess: keystone.config.defaultAccess.list,
     });
 
     this.fieldsByPath = {};
@@ -99,7 +99,7 @@ module.exports = class List {
             listKey: key,
             listAdapter: this.adapter,
             fieldAdapterClass: type.adapters[adapter.name],
-            defaultAccess: keystone.config.defaultAccess,
+            defaultAccess: keystone.config.defaultAccess.field,
           });
           return this.fieldsByPath[path];
         })

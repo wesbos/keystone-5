@@ -5,6 +5,15 @@ function yesNo(truthy) {
   return truthy ? 'Yes' : 'No';
 }
 
+function getPrefix(access) {
+  // prettier-ignore
+  let prefix = `${yesNo(access.create)}Create${yesNo(access.read)}Read${yesNo(access.update)}Update`;
+  if (Object.prototype.hasOwnProperty.call(access, 'delete')) {
+    prefix = `${prefix}${yesNo(access.delete)}Delete`;
+  }
+  return prefix;
+}
+
 function identity(value) {
   return value;
 }
@@ -21,21 +30,19 @@ const usersByLevel = memoize(() => {
 
 module.exports = {
   getStaticListName(access) {
-    return `${yesNo(access.create)}Create${yesNo(access.read)}Read${yesNo(
-      access.update
-    )}Update${yesNo(access.delete)}DeleteStaticList`;
+    return `${getPrefix(access)}StaticList`;
   },
 
   getImperativeListName(access) {
-    return `${yesNo(access.create)}Create${yesNo(access.read)}Read${yesNo(
-      access.update
-    )}Update${yesNo(access.delete)}DeleteImperativeList`;
+    return `${getPrefix(access)}ImperativeList`;
   },
 
   getDeclarativeListName(access) {
-    return `${yesNo(access.create)}Create${yesNo(access.read)}Read${yesNo(
-      access.update
-    )}Update${yesNo(access.delete)}DeleteDeclarativeList`;
+    return `${getPrefix(access)}DeclarativeList`;
+  },
+
+  getFieldName(access) {
+    return getPrefix(access);
   },
 
   listNameToCollectionName(name) {
@@ -43,7 +50,7 @@ module.exports = {
   },
 
   // prettier-ignore
-  accessCombinations: [
+  listAccessVariations: [
     { create: false, read: false, update: false, delete: false },
     { create: true,  read: false, update: false, delete: false },
     { create: false, read: true,  update: false, delete: false },
@@ -60,6 +67,17 @@ module.exports = {
     { create: true,  read: false, update: true,  delete: true },
     { create: false, read: true,  update: true,  delete: true },
     { create: true,  read: true,  update: true,  delete: true },
+  ],
+
+  fieldAccessVariations: [
+    { create: false, read: false, update: false },
+    { create: true,  read: false, update: false },
+    { create: false, read: true,  update: false },
+    { create: true,  read: true,  update: false },
+    { create: false, read: false, update: true },
+    { create: true,  read: false, update: true },
+    { create: false, read: true,  update: true },
+    { create: true,  read: true,  update: true },
   ],
 
   stayLoggedIn(level) {
