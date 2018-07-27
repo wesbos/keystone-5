@@ -248,12 +248,22 @@ module.exports = class Keystone {
     });
   }
 
-  getAccessControl({
+  getListAccessControl({
     listKey,
     operation,
     authentication,
   }) {
     return this.lists[listKey].getAccessControl({ operation, authentication });
+  }
+
+  getFieldAccessControl({
+    item,
+    listKey,
+    fieldKey,
+    operation,
+    authentication,
+  }) {
+    return this.lists[listKey].getFieldAccessControl({ item, fieldKey, operation, authentication });
   }
 
   createItem(listKey, itemData) {

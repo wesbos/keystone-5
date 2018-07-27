@@ -31,9 +31,19 @@ module.exports = function createGraphQLMiddleware(
       // memoizing to avoid requests that hit the same type multiple times.
       // We do it within the request callback so we can resolve it based on the
       // request info ( like who's logged in right now, etc)
-      const getAccessControlForUser = fastMemoize((listKey, operation) => {
-        return keystone.getAccessControl({
+      const getListAccessControlForUser = fastMemoize((listKey, operation) => {
+        return keystone.getListAccessControl({
           listKey,
+          operation,
+          authentication: { item: req.user, listKey: req.authedListKey }
+        });
+      });
+
+      const getFieldAccessControlForUser = fastMemoize((listKey, fieldKey, item, operation) => {
+        return keystone.getFieldAccessControl({
+          item,
+          listKey,
+          fieldKey,
           operation,
           authentication: { item: req.user, listKey: req.authedListKey }
         });
@@ -45,7 +55,8 @@ module.exports = function createGraphQLMiddleware(
         context: {
           authedItem: req.user,
           authedListKey: req.authedListKey,
-          getAccessControlForUser,
+          getListAccessControlForUser,
+          getFieldAccessControlForUser,
         },
         formatError: error => {
           // For correlating user error reports with logs

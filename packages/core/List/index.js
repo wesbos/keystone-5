@@ -137,7 +137,7 @@ module.exports = class List {
       updateMutationName: this.updateMutationName,
       deleteMutationName: this.deleteMutationName,
       deleteManyMutationName: this.deleteManyMutationName,
-      fields: this.fields.map(i => i.getAdminMeta()),
+      fields: this.fields.filter(field => field.access.read).map(field => field.getAdminMeta()),
       views: this.views,
     };
   }
@@ -162,6 +162,8 @@ module.exports = class List {
       .trim();
 
     const createArgs = this.fields
+      // If it's globally set to false, makes sense to never let it be created
+      .filter(field => !!field.access.create)
       .map(i => i.getGraphqlCreateArgs())
       .filter(i => i)
       .map(i => i.split(/\n\s+/g).join('\n          '))
@@ -303,7 +305,7 @@ module.exports = class List {
     if (this.access.read) {
       resolvers = {
         [this.listQueryName]: (_, args, context) => {
-          const access = context.getAccessControlForUser(this.key, 'read');
+          const access = context.getListAccessControlForUser(this.key, 'read');
           if (!access) {
             // If the client handles errors correctly, it should be able to
             // receive partial data (for the fields the user has access to),
@@ -330,7 +332,7 @@ module.exports = class List {
             // on what the user requested
             // Evalutation takes place in ../Keystone/index.js
             getCount: () => {
-              const access = context.getAccessControlForUser(this.key, 'read');
+              const access = context.getListAccessControlForUser(this.key, 'read');
               if (!access) {
                 // If the client handles errors correctly, it should be able to
                 // receive partial data (for the fields the user has access to),
@@ -362,10 +364,10 @@ module.exports = class List {
             // NOTE: These could return a Boolean or a JSON object (if using the
             // declarative syntax)
             getAccess: () => ({
-              getCreate: () => context.getAccessControlForUser(this.key, 'create'),
-              getRead: () => context.getAccessControlForUser(this.key, 'read'),
-              getUpdate: () => context.getAccessControlForUser(this.key, 'update'),
-              getDelete: () => context.getAccessControlForUser(this.key, 'delete'),
+              getCreate: () => context.getListAccessControlForUser(this.key, 'create'),
+              getRead: () => context.getListAccessControlForUser(this.key, 'read'),
+              getUpdate: () => context.getListAccessControlForUser(this.key, 'update'),
+              getDelete: () => context.getListAccessControlForUser(this.key, 'delete'),
             }),
           };
         },
@@ -417,6 +419,7 @@ module.exports = class List {
         return this.fields.reduce(
           (filteredData, field) => ({
             ...filteredData,
+            // TODO - ACL - Shouldn't use `checkAccess`
             [field.path]: checkAccess({
               access: field.acl.read,
               dynamicCheckData: () => ({
@@ -447,21 +450,11 @@ module.exports = class List {
 
         return {
           ...resolvers,
-          // Ensure their's a field resolver for every field
+          // Ensure there's a field resolver for every field
           [field.path]: (item, args, context, ...rest) => {
             // If not allowed access
-            if (
-              !checkAccess({
-                access: field.acl.read,
-                dynamicCheckData: () => ({
-                  itemId: item ? item.id : null,
-                  authentication: {
-                    item: context.authedItem,
-                    listKey: context.authedListKey,
-                  },
-                }),
-              })
-            ) {
+            const access = context.getFieldAccessControlForUser(this.key, field.path, item, 'read');
+            if (!access) {
               // If the client handles errors correctly, it should be able to
               // receive partial data (for the fields the user has access to),
               // and then an `errors` array of AccessDeniedError's
@@ -566,7 +559,6 @@ module.exports = class List {
         ): ${this.key}
       `);
 
-      // TODO: FIXME? Should this return an array of items?
       mutations.push(`
         ${this.deleteManyMutationName}(
           ids: [String!]
@@ -578,42 +570,24 @@ module.exports = class List {
   }
 
   throwIfAccessDeniedOnFields({
-    fields,
     accessType,
-    id,
-    data,
-    context: { authedItem, authedListKey },
+    item,
+    inputData,
+    context,
     errorMeta = {},
     errorMetaForLogging = {},
   }) {
-    const idString = id.toString();
     const restrictedFields = [];
 
-    const dynamicData = {
-      itemId: idString,
-      data,
-      authentication: {
-        item: authedItem,
-        listKey: authedListKey,
-      },
-    };
-
-    const dynamicDataGetter = () => dynamicData;
-
-    fields.forEach(field => {
-      if (!(field.path in data)) {
-        return;
-      }
-
-      if (
-        !checkAccess({
-          access: field.acl[accessType],
-          dynamicCheckData: dynamicDataGetter,
-        })
-      ) {
-        restrictedFields.push(field.path);
-      }
-    });
+    this.fields
+      .filter(field => (field.path in inputData))
+      .forEach(field => {
+        const access = context.getFieldAccessControlForUser(this.key, field.path, item, accessType);
+        console.log(field.path, { access });
+        if (!access) {
+          restrictedFields.push(field.path);
+        }
+      });
 
     if (restrictedFields.length) {
       throw new AccessDeniedError({
@@ -622,8 +596,8 @@ module.exports = class List {
           ...errorMeta,
         },
         internalData: {
-          authedId: authedItem && authedItem.id,
-          authedListKey: authedListKey,
+          authedId: context.authedItem && context.authedItem.id,
+          authedListKey: context.authedListKey,
           ...errorMetaForLogging,
         },
       });
@@ -650,7 +624,7 @@ module.exports = class List {
       });
     };
 
-    const access = context.getAccessControlForUser(this.key, operation);
+    const access = context.getListAccessControlForUser(this.key, operation);
     if (!access) {
       graphqlLogger.info({
         id,
@@ -733,7 +707,7 @@ module.exports = class List {
       return [];
     }
 
-    const access = context.getAccessControlForUser(this.key, operation);
+    const access = context.getListAccessControlForUser(this.key, operation);
     if (!access) {
       // If the client handles errors correctly, it should be able to
       // receive partial data (for the fields the user has access to),
@@ -825,7 +799,7 @@ module.exports = class List {
         { data },
         context
       ) => {
-        const access = context.getAccessControlForUser(this.key, 'create');
+        const access = context.getListAccessControlForUser(this.key, 'create');
         if (!access) {
           throw new AccessDeniedError({
             data: {
@@ -838,6 +812,34 @@ module.exports = class List {
             },
           });
         }
+
+        // Merge in default Values here
+        const item = this.fields.reduce(
+          (memo, field) => {
+            const defaultValue = field.getDefaultValue();
+
+            // explicit `undefined` check as `null` is a valid value
+            if (!(field.path in data) && defaultValue === undefined) {
+              throw new Error(`Attempted to create item with incomplete data. ${this.key}.${field.path} has no default value`);
+            }
+            return {
+              [field.path]: defaultValue,
+              ...memo,
+            };
+          },
+          data,
+        );
+
+        this.throwIfAccessDeniedOnFields({
+          accessType: 'create',
+          item,
+          inputData: data,
+          context,
+          errorMeta: {
+            type: 'mutation',
+            name: this.updateMutationName,
+          },
+        });
 
         const resolvedData = await resolveAllKeys(
           Object.keys(data).reduce(
@@ -885,12 +887,10 @@ module.exports = class List {
             },
           },
           async (item) => {
-            // TODO Implement declarative syntax for fields
-            /*this.throwIfAccessDeniedOnFields({
-              fields: this.fields,
+            this.throwIfAccessDeniedOnFields({
               accessType: 'update',
-              id,
-              data,
+              item,
+              inputData: data,
               context,
               errorMeta: {
                 type: 'mutation',
@@ -899,7 +899,7 @@ module.exports = class List {
               errorMetaForLogging: {
                 itemId: id,
               },
-            });*/
+            });
 
             const resolvedData = await resolveAllKeys(
               Object.keys(data).reduce(
@@ -997,6 +997,22 @@ module.exports = class List {
       operation,
       authentication,
       listKey: this.key,
+    });
+  }
+
+  getFieldAccessControl({
+    fieldKey,
+    item,
+    inputData,
+    operation,
+    authentication
+  }) {
+    return this.fieldsByPath[fieldKey].testAccessControl({
+      listKey: this.key,
+      item,
+      inputData,
+      operation,
+      authentication,
     });
   }
 };

@@ -919,7 +919,7 @@ describe('Access Control, List, GraphQL', () => {
                   `query { ${singleQueryName}(where: { id: "${FAKE_ID}" }) { id } }`
                 )
                 .then(({ data, errors }) => {
-                  expect(data, 'data').to.equal(undefined);
+                  expect(data, 'data').to.have.property(singleQueryName, null);
                   expect(errors, 'error name').to.have.deep.property(
                     '[0].name',
                     'AccessDeniedError'
@@ -991,7 +991,7 @@ describe('Access Control, List, GraphQL', () => {
                   `mutation { ${updateMutationName}(id: "${FAKE_ID}", data: { zip: "bar" }) { id } }`
                 )
                 .then(({ data, errors }) => {
-                  expect(data, 'data').to.equal(undefined);
+                  expect(data, 'data').to.have.property(updateMutationName, null)
                   expect(errors, 'error name').to.have.deep.property(
                     '[0].name',
                     'AccessDeniedError'
@@ -1046,7 +1046,7 @@ describe('Access Control, List, GraphQL', () => {
                   `mutation { ${deleteMutationName}(id: "${FAKE_ID}") { id } }`
                 )
                 .then(({ data, errors }) => {
-                  expect(data, 'data').to.equal(undefined);
+                  expect(data, 'data').to.have.property(deleteMutationName, null);
                   expect(errors, 'error name').to.have.deep.property(
                     '[0].name',
                     'AccessDeniedError'

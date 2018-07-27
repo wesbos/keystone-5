@@ -49,6 +49,19 @@ module.exports = {
     return `${name.toLowerCase()}s`;
   },
 
+  /* Generated with:
+  const result = [];
+  const options = ['create', 'read', 'update', 'delete'];
+  // All possible combinations are contained in the set 0..2^n-1
+  for(let flags = 0; flags < Math.pow(2, options.length); flags++) {
+    // Generate an object of true/false values for the particular combination
+    result.push(options.reduce((memo, option, index) => ({
+      ...memo,
+      // Use a bit mask to see if that bit is set
+      [option]: !!(flags & (1 << index)),
+    }), {}));
+  }
+  */
   // prettier-ignore
   listAccessVariations: [
     { create: false, read: false, update: false, delete: false },

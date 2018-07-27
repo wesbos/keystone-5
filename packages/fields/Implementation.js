@@ -1,6 +1,7 @@
 const inflection = require('inflection');
 const { pick } = require('@keystonejs/utils');
 const { parseFieldAccess } = require('@keystonejs/access-control');
+const { testFieldAccessControl } = require('@keystonejs/access-control');
 
 class Field {
   constructor(
@@ -101,11 +102,24 @@ class Field {
       label: this.label,
       path: this.path,
       type: this.constructor.name,
-      defaultValue: this.config.defaultValue,
+      defaultValue: this.getDefaultValue(),
     });
   }
   extendAdminMeta(meta) {
     return meta;
+  }
+  getDefaultValue() {
+    return this.config.defaultValue;
+  }
+  testAccessControl({ listKey, item, operation, authentication }) {
+    return testFieldAccessControl({
+      access: this.access,
+      item,
+      operation,
+      authentication,
+      fieldKey: this.path,
+      listKey,
+    });
   }
 }
 

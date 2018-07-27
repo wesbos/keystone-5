@@ -34,9 +34,11 @@ keystone.createList('User', {
   fields: {
     email: {
       type: Text,
+      defaultValue: '',
     },
     password: {
       type: Password,
+      defaultValue: '',
     },
     // Normally users might be multiple of each of these, but for demo purposes
     // we assume they can only be one at a time.
@@ -49,12 +51,12 @@ keystone.createList('User', {
 
 function createListWithStaticAccess(access) {
   const createField = fieldAccess => ({
-    [getFieldName(fieldAccess)]: { type: Text, access: fieldAccess }
+    [getFieldName(fieldAccess)]: { type: Text, access: fieldAccess, defaultValue: '' }
   });
   keystone.createList(getStaticListName(access), {
     fields: {
-      foo: { type: Text },
-      zip: { type: Text },
+      foo: { type: Text, defaultValue: '' },
+      zip: { type: Text, defaultValue: '' },
       ...fieldAccessVariations.reduce(
         (memo, variation) => Object.assign(memo, createField(variation)),
         {}
@@ -74,12 +76,13 @@ function createListWithImperativeAccess(access) {
         update: () => fieldAccess.update,
         delete: () => fieldAccess.delete,
       },
+      defaultValue: '',
     },
   });
   keystone.createList(getImperativeListName(access), {
     fields: {
-      foo: { type: Text },
-      zip: { type: Text },
+      foo: { type: Text, defaultValue: '' },
+      zip: { type: Text, defaultValue: '' },
       ...fieldAccessVariations.reduce(
         (memo, variation) => Object.assign(memo, createField(variation)),
         {}
@@ -97,8 +100,8 @@ function createListWithImperativeAccess(access) {
 function createListWithDeclarativeAccess(access) {
   keystone.createList(getDeclarativeListName(access), {
     fields: {
-      foo: { type: Text },
-      zip: { type: Text },
+      foo: { type: Text, defaultValue: '' },
+      zip: { type: Text, defaultValue: '' },
     },
     access: {
       create: ({ authentication: { item, listKey } }) =>
@@ -148,118 +151,9 @@ function createListWithDeclarativeAccess(access) {
   });
 }
 
-/* Generated with:
-const result = [];
-const options = ['create', 'read', 'update', 'delete'];
-// All possible combinations are contained in the set 0..2^n-1
-for(let flags = 0; flags < Math.pow(2, options.length); flags++) {
-  // Generate an object of true/false values for the particular combination
-  result.push(options.reduce((memo, option, index) => ({
-    ...memo,
-    // Use a bit mask to see if that bit is set
-    [option]: !!(flags & (1 << index)),
-  }), {}));
-}
-*/
-
 listAccessVariations.forEach(createListWithStaticAccess);
 listAccessVariations.forEach(createListWithImperativeAccess);
 listAccessVariations.forEach(createListWithDeclarativeAccess);
-
-keystone.createList('Post', {
-  fields: {
-    title: {
-      type: Text,
-      access: {
-        create: true,
-        read: true,
-        update: true,
-        delete: true,
-      },
-    },
-    author: {
-      type: Relationship,
-      ref: 'User',
-      access: {
-        create: true,
-        read: true,
-        update: true,
-        delete: true,
-      },
-    },
-    status: {
-      type: Select,
-      options: ['deleted', 'draft', 'published'],
-      access: {
-        create: true,
-        read: true,
-        update: true,
-        delete: true,
-      },
-    },
-  },
-  labelResolver: item => `${item.title}`,
-});
-
-// An audit trail of actions performed
-keystone.createList('Audit', {
-  fields: {
-    user: {
-      type: Relationship,
-      ref: 'User',
-      access: {
-        create: true,
-        read: true,
-        update: true,
-        delete: true,
-      },
-    },
-    post: {
-      type: Relationship,
-      ref: 'Post',
-      access: {
-        create: true,
-        read: true,
-        update: true,
-        delete: true,
-      },
-    },
-    action: {
-      type: Select,
-      options: ['edit', 'create', 'delete', 'changestatus'],
-      access: {
-        create: true,
-        read: true,
-        update: true,
-        delete: true,
-      },
-    },
-  },
-  // Only admins have access
-  access: {
-    create: ({ authentication: { item, listKey } }) =>
-      listKey === 'User' && ['su', 'admin'].includes(item.level),
-    read: ({ authentication: { item, listKey } }) =>
-      listKey === 'User' && ['su', 'admin'].includes(item.level),
-    update: ({ authentication: { item, listKey } }) =>
-      listKey === 'User' && ['su', 'admin'].includes(item.level),
-    delete: ({ authentication: { item, listKey } }) =>
-      listKey === 'User' && ['su', 'admin'].includes(item.level),
-  },
-});
-
-// A log of everything going on
-keystone.createList('Log', {
-  fields: {
-    entry: { type: Text },
-  },
-  access: {
-    create: true,
-    read: false,
-    update: false,
-    delete: false,
-  },
-});
 
 const admin = new AdminUI(keystone, {
   adminPath: '/admin',

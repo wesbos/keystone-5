@@ -125,7 +125,7 @@ module.exports = {
     }
 
     const result = access[operation]({
-      authentication: authentication.item ? authentication : {}
+      authentication: authentication.item ? authentication : {},
     });
 
     const type = getType(result);
@@ -140,5 +140,24 @@ module.exports = {
     }
 
     return result;
-  }
-}
+  },
+
+  testFieldAccessControl({ access, listKey, fieldKey, item, operation, authentication }) {
+    if (typeof access[operation] !== 'function') {
+      return access[operation];
+    }
+
+    const result = access[operation]({
+      authentication: authentication.item ? authentication : {},
+      item,
+    });
+
+    const type = getType(result);
+
+    if (type !== 'Boolean') {
+      throw new Error(`Must return a Boolean from ${listKey}.fields.${fieldKey}.access.${operation}(). Got ${type}`);
+    }
+
+    return result;
+  },
+};

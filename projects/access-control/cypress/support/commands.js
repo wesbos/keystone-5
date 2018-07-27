@@ -88,6 +88,9 @@ function graphqlOperation(type) {
         // want to test how the GraphQL API responds, not how the Apollo Cache
         // responds (which can be different: it doesn't cache errors!)
         fetchPolicy: 'no-cache',
+        // The GraphQL api might send back partial data + partial errors. We
+        // want it all.
+        errorPolicy: 'all',
       })
         .then(result => {
           console.log('Fetched data:', result);
