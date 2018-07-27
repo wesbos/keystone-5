@@ -54,7 +54,7 @@ const ItemId = styled.div({
   fontFamily: 'Monaco, Consolas, monospace',
   fontSize: '0.85em',
 });
-const Form = styled.div({
+const Form = styled.form({
   margin: '24px 0',
 });
 const TitleLink = ({ children, ...props }) => (

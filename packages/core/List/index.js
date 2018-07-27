@@ -409,10 +409,6 @@ module.exports = class List {
     // authenticate themselves, then they already have access to know that the
     // list exists
     if (this.keystone.auth[this.key]) {
-      if (!this.access.read) {
-        throw new Error(`The ${this.key} list is set as an authenticatable list, so must have global readable access`);
-      }
-
       resolvers[this.authenticatedQueryName] = (_, __, context) => {
         if (!context.authedItem || context.authedListKey !== this.key) {
           return null;

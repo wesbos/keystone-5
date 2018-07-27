@@ -321,8 +321,8 @@ export default class ListTable extends Component {
                 />
               </div>
             </HeaderCell>
-            {fields.map(({ label }) => (
-              <HeaderCell key={label}>{label}</HeaderCell>
+            {fields.map((field) => (
+              <HeaderCell data-field={field.path} key={field.path}>{field.label}</HeaderCell>
             ))}
           </tr>
         </thead>
