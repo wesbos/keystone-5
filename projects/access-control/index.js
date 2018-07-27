@@ -46,6 +46,11 @@ keystone.createList('User', {
       type: Select,
       options: ['su', 'admin', 'editor', 'writer', 'reader'],
     },
+    // NOTE: We only need imperitive ones here - we test elsewhere that static
+    // fields aren't included in graphQL responses. And fields can't have
+    // declarative types.
+    noRead: { type: Text, access: { read: () => false } },
+    yesRead: { type: Text, access: { read: () => true } },
   },
 });
 

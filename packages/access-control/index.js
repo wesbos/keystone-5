@@ -97,7 +97,7 @@ module.exports = {
       },
       validateGranularType: (type, accessType) => {
         if (!['Boolean', 'Function'].includes(type)) {
-          return `Expected a Boolean, or Function for ${listKey}.fields.${fieldKey}.access.${accessType}, but got ${type}. (NOTE: Fields cannot have declarative access control config)`;
+          return `Expected a Boolean or Function for ${listKey}.fields.${fieldKey}.access.${accessType}, but got ${type}. (NOTE: Fields cannot have declarative access control config)`;
         }
       },
     });

@@ -297,6 +297,34 @@ module.exports = class List {
     return queries;
   }
 
+  async singleItemResolver({ id, context, name }) {
+    graphqlLogger.debug({
+      id,
+      operation: 'read',
+      type: 'query',
+      name,
+    }, 'Start query');
+    const result = await this.performActionOnItemWithAccessControl(
+      {
+        id,
+        context,
+        operation: 'read',
+        errorData: {
+          type: 'query',
+          name,
+        },
+      },
+      item => item,
+    );
+    graphqlLogger.debug({
+      id,
+      operation: 'read',
+      type: 'query',
+      name,
+    }, 'End query');
+    return result;
+  }
+
   getAdminQueryResolvers() {
     let resolvers = {};
 
@@ -372,33 +400,8 @@ module.exports = class List {
           };
         },
 
-        [this.itemQueryName]: async (_, { where: { id } }, context) => {
-          graphqlLogger.info({
-            id,
-            operation: 'read',
-            type: 'query',
-            name: this.itemQueryName,
-          }, 'Start query')
-          const result = await this.performActionOnItemWithAccessControl(
-            {
-              id,
-              context,
-              operation: 'read',
-              errorData: {
-                type: 'query',
-                name: this.itemQueryName,
-              },
-            },
-            item => item,
-          );
-          graphqlLogger.info({
-            id,
-            operation: 'read',
-            type: 'query',
-            name: this.itemQueryName,
-          }, 'End query')
-          return result;
-        },
+        [this.itemQueryName]: (_, { where: { id } }, context) =>
+          this.singleItemResolver({ id, context, name: this.itemQueryName }),
       };
     }
 
@@ -406,32 +409,20 @@ module.exports = class List {
     // authenticate themselves, then they already have access to know that the
     // list exists
     if (this.keystone.auth[this.key]) {
-      resolvers[this.authenticatedQueryName] = (
-        _,
-        args,
-        { authedItem, authedListKey }
-      ) => {
-        if (!authedItem || authedListKey !== this.key) {
+      if (!this.access.read) {
+        throw new Error(`The ${this.key} list is set as an authenticatable list, so must have global readable access`);
+      }
+
+      resolvers[this.authenticatedQueryName] = (_, __, context) => {
+        if (!context.authedItem || context.authedListKey !== this.key) {
           return null;
         }
 
-        // We filter out any requested fields that they don't have access to
-        return this.fields.reduce(
-          (filteredData, field) => ({
-            ...filteredData,
-            // TODO - ACL - Shouldn't use `checkAccess`
-            [field.path]: checkAccess({
-              access: field.acl.read,
-              dynamicCheckData: () => ({
-                item: authedItem,
-                listKey: authedListKey,
-              }),
-            })
-              ? authedItem[field.path]
-              : null,
-          }),
-          {}
-        );
+        return this.singleItemResolver({
+          id: context.authedItem.id,
+          context,
+          name: this.authenticatedQueryName
+        });
       };
     }
 
@@ -610,7 +601,7 @@ module.exports = class List {
         id,
         operation,
         ...errorData,
-      }, 'Access Denied')
+      }, 'Access Denied');
       // If the client handles errors correctly, it should be able to
       // receive partial data (for the fields the user has access to),
       // and then an `errors` array of AccessDeniedError's
@@ -626,12 +617,12 @@ module.exports = class List {
 
     const access = context.getListAccessControlForUser(this.key, operation);
     if (!access) {
-      graphqlLogger.info({
+      graphqlLogger.debug({
         id,
         operation,
         access,
         ...errorData,
-      }, 'Access statically or implicitly denied')
+      }, 'Access statically or implicitly denied');
       throwAccessDenied();
     }
 
@@ -647,20 +638,20 @@ module.exports = class List {
     // Nice side-effect: We can throw without having to ever query the DB.
     // NOTE: Don't try to early out here by doing
     // if(access.id === id) return findById(id)
-    // this will result in a possible false match if the access control
-    // has other items in it
+    // this will result in a possible false match if a declarative access
+    // control clause has other items in it
     if (
       (access.id && access.id !== id) ||
       (access.id_not && access.id_not === id) ||
       (access.id_in && !access.id_in.includes(id)) ||
       (access.id_not_in && access.id_not_in.includes(id))
     ) {
-      graphqlLogger.info({
+      graphqlLogger.debug({
         id,
         operation,
         access,
         ...errorData,
-      }, 'Item excluded this id from filters')
+      }, 'Item excluded this id from filters');
       throwAccessDenied();
     }
 
@@ -689,12 +680,12 @@ module.exports = class List {
       // that return null do not exist). Similar to how S3 returns 403's
       // always instead of ever returning 404's.
       // Our version is to always throw if not found.
-      graphqlLogger.info({
+      graphqlLogger.debug({
         id,
         operation,
         access,
         ...errorData,
-      }, 'Zero items found')
+      }, 'Zero items found');
       throwAccessDenied();
     }
 

@@ -41,7 +41,7 @@ exports.intersection = (array1, array2) =>
   exports.unique(array1.filter(value => array2.includes(value)));
 
 exports.pick = (obj, keys) =>
-  keys.reduce((result, key) => ({ ...result, [key]: obj[key] }), {});
+  keys.reduce((result, key) => (key in obj ? { ...result, [key]: obj[key] } : result), {});
 
 exports.omit = (obj, keys) =>
   exports.pick(obj, Object.keys(obj).filter(value => !keys.includes(value)));
