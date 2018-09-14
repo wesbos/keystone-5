@@ -64,7 +64,7 @@ module.exports = {
   Post: [
     {
       name: 'Lets talk React Router',
-      author: { where: { email: 'ben@keystonejs.com' } },
+      author: { where: { email: 'ben@voussoir.com' } },
       categories: { where: { name_starts_with: 'React' } },
     },
     {
@@ -72,7 +72,7 @@ module.exports = {
     },
     {
       name: 'How we built Keystone 5',
-      author: { where: { email: 'jared@keystonejs.com' } },
+      author: { where: { email: 'jared@voussoir.com' } },
       categories: [
         { where: { name: 'React' } },
         { where: { name: 'Keystone' } },
