@@ -13,21 +13,23 @@ When publishing keystone, we are using `@atlaskit/build-releases` in combination
   - a message to summarise the changes (this message will be written to the changelog of bumped packages)
 - Before you accept the changeset, it will inform you of any other dependent packages within the repo that will also be bumped by this changeset. If this looks fine, agree, and a changeset commit will be generated.
 
+![](./docs/changesetCommand.gif)
+
 Here is what a changeset commit looks like:
 
 ```
-CHANGESET: Fixed a bug that caused relationships to be added twice
+CHANGESET: converts functions to arrow functions for some reason
 
-Summary: Fixed a bug that caused relationships to be added twice
+Summary: converts functions to arrow functions for some reason
 
 Release notes: <none>
 
-Releases: @voussoir/core@minor, @voussoir/adapter-mongoose@patch
+Releases: @voussoir/core@patch
 
-Dependents: @voussoir/cypress-project-access-control@patch, @voussoir/cypress-project-basic@patch, @voussoir/cypress-project-login@patch, @voussoir/cypress-project-twitter-login@patch
+Dependents: []
 
 ---
-{"summary":"Fixed a bug that caused relationships to be added twice","releases":[{"name":"@voussoir/core","type":"minor"},{"name":"@voussoir/adapter-mongoose","type":"patch"}],"dependents":[{"name":"@voussoir/cypress-project-access-control","type":"patch","dependencies":["@voussoir/core","@voussoir/adapter-mongoose"]},{"name":"@voussoir/cypress-project-basic","type":"patch","dependencies":["@voussoir/core","@voussoir/adapter-mongoose"]},{"name":"@voussoir/cypress-project-login","type":"patch","dependencies":["@voussoir/core","@voussoir/adapter-mongoose"]},{"name":"@voussoir/cypress-project-twitter-login","type":"patch","dependencies":["@voussoir/core","@voussoir/adapter-mongoose"]}]}
+{"summary":"converts functions to arrow functions for some reason","releases":[{"name":"@voussoir/core","type":"patch"}],"dependents":[]}
 ---
 ```
 
