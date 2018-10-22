@@ -98,7 +98,7 @@ module.exports = class List {
       ...(config.adminConfig || {}),
     };
     this.config = {
-      labelResolver: item => item[config.labelField || 'name'] || item.id,
+      labelResolver: item => String(item[config.labelField || 'name'] || item.id),
       ...config,
     };
 
