@@ -1452,7 +1452,7 @@
   resolved "https://registry.yarnpkg.com/@emotion/utils/-/utils-0.8.2.tgz#576ff7fb1230185b619a75d258cbc98f0867a8dc"
   integrity sha512-rLu3wcBWH4P5q1CGoSSH/i9hrXs7SlbRLkoq9IGuoPYNGQvDJ3pt/wmOM+XgYjIDRMVIdkUWt0RsfzF50JfnCw==
 
-"@emotion/weak-memoize@0.2.2":
+"@emotion/weak-memoize@0.2.2", "@emotion/weak-memoize@^0.2.2":
   version "0.2.2"
   resolved "https://registry.yarnpkg.com/@emotion/weak-memoize/-/weak-memoize-0.2.2.tgz#63985d3d8b02530e0869962f4da09142ee8e200e"
   integrity sha512-n/VQ4mbfr81aqkx/XmVicOLjviMuy02eenSdJY33SVA7S2J42EU0P1H0mOogfYedb3wXA0d/LVtBrgTSm04WEA==
