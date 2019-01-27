@@ -4,21 +4,12 @@ import { Component, createRef, Fragment } from 'react';
 import styled from '@emotion/styled';
 import { withRouter } from 'react-router-dom';
 
-import {
-  FoldIcon,
-  KebabVerticalIcon,
-  PlusIcon,
-  SearchIcon,
-  UnfoldIcon,
-  XIcon,
-  ZapIcon,
-} from '@arch-ui/icons';
+import { PlusIcon, SearchIcon, XIcon } from '@arch-ui/icons';
 import { Input } from '@arch-ui/input';
-import { Container, FlexGroup, CONTAINER_GUTTER, CONTAINER_WIDTH } from '@arch-ui/layout';
+import { Container, FlexGroup } from '@arch-ui/layout';
 import { A11yText, Kbd, Title } from '@arch-ui/typography';
 import { Button, IconButton } from '@arch-ui/button';
 import { LoadingSpinner } from '@arch-ui/loading';
-import Dropdown from '@arch-ui/dropdown';
 import { colors } from '@arch-ui/theme';
 
 import ListTable from '../../components/ListTable';
@@ -34,6 +25,7 @@ import SortSelect, { SortButton } from './SortSelect';
 import Pagination from './Pagination';
 import Management, { ManageToolbar } from './Management';
 import type { SortByType } from './DataProvider';
+import { MoreDropdown } from './MoreDropdown';
 
 // ==============================
 // Styled Components
@@ -286,39 +278,6 @@ class ListDetails extends Component<Props, State> {
     return null;
   };
 
-  renderMoreDropdown(queryWidth) {
-    const { isFullWidth } = this.state;
-    const TableIcon = isFullWidth ? FoldIcon : UnfoldIcon;
-    const tableToggleIsAvailable = queryWidth > CONTAINER_WIDTH + CONTAINER_GUTTER * 2;
-
-    const items = [
-      {
-        content: 'Reset filters, cols, etc.',
-        icon: <ZapIcon />,
-        id: 'ks-list-dropdown-reset', // for cypress tests
-        onClick: this.handleReset,
-      },
-      {
-        content: isFullWidth ? 'Collapse table' : 'Expand table',
-        icon: <TableIcon css={{ transform: 'rotate(90deg)' }} />,
-        isDisabled: !tableToggleIsAvailable,
-        onClick: this.toggleFullWidth,
-      },
-    ];
-
-    return (
-      <Dropdown
-        align="right"
-        target={
-          <IconButton variant="nuance" icon={KebabVerticalIcon} id="ks-list-dropdown">
-            <A11yText>Show more...</A11yText>
-          </IconButton>
-        }
-        items={items}
-      />
-    );
-  }
-
   render() {
     const {
       adminPath,
@@ -419,7 +378,12 @@ class ListDetails extends Component<Props, State> {
                       Create
                     </IconButton>
                   ) : null}
-                  {this.renderMoreDropdown(width)}
+                  <MoreDropdown
+                    width={width}
+                    isFullWidth={isFullWidth}
+                    onReset={this.handleReset}
+                    onFullWidthToggle={this.toggleFullWidth}
+                  />
                 </FlexGroup>
 
                 <ActiveFilters
