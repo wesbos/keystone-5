@@ -6,6 +6,9 @@ const { WebServer } = require('@voussoir/server');
 const { MongooseAdapter } = require('@voussoir/adapter-mongoose');
 const express = require('express');
 const path = require('path');
+const MongoMemoryServer = require('mongodb-memory-server').default;
+
+const mongod = new MongoMemoryServer();
 
 const keystone = new Keystone({
   name: 'Keystone To-Do List',
@@ -29,7 +32,7 @@ const server = new WebServer(keystone, {
 server.app.use(express.static(path.join(__dirname, 'public')));
 
 async function start() {
-  await keystone.connect();
+  await keystone.connect(await mongod.getConnectionString());
   server.start();
 }
 
