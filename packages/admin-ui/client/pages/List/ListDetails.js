@@ -1,6 +1,6 @@
 /** @jsx jsx */
 import { jsx } from '@emotion/core';
-import { Component, createRef, Fragment } from 'react';
+import { Component, createRef, Fragment, useEffect, useState } from 'react';
 import styled from '@emotion/styled';
 import { withRouter } from 'react-router-dom';
 
@@ -108,6 +108,68 @@ function bodyUserSelect(val) {
   document.body.style.userSelect = val;
 }
 
+function useShiftIsDown() {
+  let [shiftIsDown, setShiftIsDown] = useState(false);
+  useEffect(() => {
+    function handleKeyDown(event) {
+      if (event.key === 'Shift') {
+        setShiftIsDown(true);
+      }
+    }
+    function handleKeyUp(event) {
+      if (event.key === 'Shift') {
+        setShiftIsDown(false);
+      }
+    }
+    document.addEventListener('keydown', handleKeyDown);
+    document.addEventListener('keyup', handleKeyUp);
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+      document.removeEventListener('keyup', handleKeyUp);
+    };
+  }, []);
+  return shiftIsDown;
+}
+
+function NoResultsMessage({ filters, itemsCount, list, search, currentPage, handlePageReset }) {
+  if (filters && filters.length) {
+    return (
+      <span>
+        No {list.plural.toLowerCase()} found matching the{' '}
+        {filters.length > 1 ? 'filters' : 'filter'}
+      </span>
+    );
+  }
+  if (search && search.length) {
+    return (
+      <span>
+        No {list.plural.toLowerCase()} found matching &ldquo;
+        {search}
+        &rdquo;
+      </span>
+    );
+  }
+
+  if (currentPage !== 1) {
+    return (
+      <div>
+        <p>
+          Not enough {list.plural.toLowerCase()} found to show page {currentPage}.
+        </p>
+        <Button variant="ghost" onClick={handlePageReset}>
+          Show first page
+        </Button>
+      </div>
+    );
+  }
+
+  if (itemsCount === 0) {
+    return <span>No {list.plural.toLowerCase()} to display yet...</span>;
+  }
+
+  return null;
+}
+
 class ListDetails extends Component<Props, State> {
   state = {
     isFullWidth: false,
@@ -133,9 +195,6 @@ class ListDetails extends Component<Props, State> {
     document.removeEventListener('keyup', this.handleKeyUp);
   }
 
-  toggleFullWidth = () => {
-    this.setState(state => ({ isFullWidth: !state.isFullWidth }));
-  };
   handleKeyDown = event => {
     if (event.key === 'Shift') {
       if (this.state.selectedItems.length > 0) {
@@ -153,131 +212,6 @@ class ListDetails extends Component<Props, State> {
     }
   };
 
-  closeCreateModal = () => this.setState({ showCreateModal: false });
-  openCreateModal = () => this.setState({ showCreateModal: true });
-
-  // ==============================
-  // Search
-  // ==============================
-
-  handleSearchChange = ({ target: { value } }) => {
-    this.setState({ searchValue: value }, () => {
-      this.props.handleSearchChange(value);
-    });
-  };
-  handleSearchClear = () => {
-    this.setState({ searchValue: '' });
-    this.props.handleSearchClear();
-    this.searchInput.focus();
-  };
-  handleReset = () => {
-    this.setState({ searchValue: '' });
-    this.props.handleReset();
-  };
-  handleSearchSubmit = event => {
-    event.preventDefault();
-    this.props.handleSearchSubmit();
-  };
-
-  // ==============================
-  // Management
-  // ==============================
-
-  handleItemSelect = (itemId: string) => {
-    let selectedItems = this.state.selectedItems.slice(0);
-
-    if (this.shiftIsDown && this.lastChecked) {
-      const itemIds = this.props.items.map(i => i.id);
-      const from = itemIds.indexOf(itemId);
-      const to = itemIds.indexOf(this.lastChecked);
-      const start = Math.min(from, to);
-      const end = Math.max(from, to) + 1;
-
-      itemIds
-        .slice(start, end)
-        .filter(id => id !== this.lastChecked)
-        .forEach(id => {
-          if (!selectedItems.includes(this.lastChecked)) {
-            selectedItems = selectedItems.filter(existingId => existingId !== id);
-          } else {
-            selectedItems.push(id);
-          }
-        });
-
-      // lazy ensure unique
-      const uniqueItems = [...new Set(selectedItems)];
-      this.setState({ selectedItems: uniqueItems });
-    } else {
-      if (selectedItems.includes(itemId)) {
-        selectedItems = selectedItems.filter(existingId => existingId !== itemId);
-      } else {
-        selectedItems.push(itemId);
-      }
-
-      this.setState({ selectedItems });
-    }
-
-    this.lastChecked = itemId;
-  };
-  handleItemSelectAll = (selectedItems: Array<string>) => {
-    this.setState({ selectedItems });
-  };
-  onDeleteSelectedItems = () => {
-    const { query } = this.props;
-    if (query.refetch) query.refetch();
-    this.setState({ selectedItems: [] });
-  };
-  onCreate = ({ data }) => {
-    let { list, adminPath, history } = this.props;
-    let id = data[list.gqlNames.createMutationName].id;
-    history.push(`${adminPath}/${list.path}/${id}`);
-  };
-
-  // ==============================
-  // Renderers
-  // ==============================
-
-  getNoResultsMessage = () => {
-    const { filters, itemsCount, list, search, currentPage, handlePageReset } = this.props;
-
-    if (filters && filters.length) {
-      return (
-        <span>
-          No {list.plural.toLowerCase()} found matching the{' '}
-          {filters.length > 1 ? 'filters' : 'filter'}
-        </span>
-      );
-    }
-    if (search && search.length) {
-      return (
-        <span>
-          No {list.plural.toLowerCase()} found matching &ldquo;
-          {search}
-          &rdquo;
-        </span>
-      );
-    }
-
-    if (currentPage !== 1) {
-      return (
-        <div>
-          <p>
-            Not enough {list.plural.toLowerCase()} found to show page {currentPage}.
-          </p>
-          <Button variant="ghost" onClick={handlePageReset}>
-            Show first page
-          </Button>
-        </div>
-      );
-    }
-
-    if (itemsCount === 0) {
-      return <span>No {list.plural.toLowerCase()} to display yet...</span>;
-    }
-
-    return null;
-  };
-
   render() {
     const {
       adminPath,
@@ -290,6 +224,7 @@ class ListDetails extends Component<Props, State> {
       handleFilterRemoveAll,
       handleFilterUpdate,
       handlePageChange,
+      handlePageReset,
       handleSortChange,
       items,
       itemsCount,
@@ -298,11 +233,94 @@ class ListDetails extends Component<Props, State> {
       pageSize,
       query,
       sortBy,
+      search,
+      history,
     } = this.props;
     const { isFullWidth, selectedItems, showCreateModal, searchValue } = this.state;
 
     const searchId = 'ks-list-search-input';
 
+    let closeCreateModal = () => this.setState({ showCreateModal: false });
+    let openCreateModal = () => this.setState({ showCreateModal: true });
+
+    // ==============================
+    // Search
+    // ==============================
+
+    let handleSearchChange = ({ target: { value } }) => {
+      this.setState({ searchValue: value }, () => {
+        this.props.handleSearchChange(value);
+      });
+    };
+    let handleSearchClear = () => {
+      this.setState({ searchValue: '' });
+      this.props.handleSearchClear();
+      this.searchInput.focus();
+    };
+    let handleReset = () => {
+      this.setState({ searchValue: '' });
+      this.props.handleReset();
+    };
+    let handleSearchSubmit = event => {
+      event.preventDefault();
+      this.props.handleSearchSubmit();
+    };
+
+    // ==============================
+    // Management
+    // ==============================
+
+    let handleItemSelect = (itemId: string) => {
+      let selectedItems = this.state.selectedItems.slice(0);
+
+      if (this.shiftIsDown && this.lastChecked) {
+        const itemIds = this.props.items.map(i => i.id);
+        const from = itemIds.indexOf(itemId);
+        const to = itemIds.indexOf(this.lastChecked);
+        const start = Math.min(from, to);
+        const end = Math.max(from, to) + 1;
+
+        itemIds
+          .slice(start, end)
+          .filter(id => id !== this.lastChecked)
+          .forEach(id => {
+            if (!selectedItems.includes(this.lastChecked)) {
+              selectedItems = selectedItems.filter(existingId => existingId !== id);
+            } else {
+              selectedItems.push(id);
+            }
+          });
+
+        // lazy ensure unique
+        const uniqueItems = [...new Set(selectedItems)];
+        this.setState({ selectedItems: uniqueItems });
+      } else {
+        if (selectedItems.includes(itemId)) {
+          selectedItems = selectedItems.filter(existingId => existingId !== itemId);
+        } else {
+          selectedItems.push(itemId);
+        }
+
+        this.setState({ selectedItems });
+      }
+
+      this.lastChecked = itemId;
+    };
+    let handleItemSelectAll = (selectedItems: Array<string>) => {
+      this.setState({ selectedItems });
+    };
+    let onDeleteSelectedItems = () => {
+      if (query.refetch) query.refetch();
+      this.setState({ selectedItems: [] });
+    };
+    let onCreate = ({ data }) => {
+      let id = data[list.gqlNames.createMutationName].id;
+      history.push(`${adminPath}/${list.path}/${id}`);
+    };
+
+    let toggleFullWidth = () => {
+      this.setState(state => ({ isFullWidth: !state.isFullWidth }));
+    };
     return (
       <Fragment>
         <main>
@@ -339,8 +357,8 @@ class ListDetails extends Component<Props, State> {
                 <FlexGroup growIndexes={[0]}>
                   <Search
                     isFetching={query.loading}
-                    onClear={this.handleSearchClear}
-                    onSubmit={this.handleSearchSubmit}
+                    onClear={handleSearchClear}
+                    onSubmit={handleSearchSubmit}
                     hasValue={searchValue && searchValue.length}
                   >
                     <A11yText tag="label" htmlFor={searchId}>
@@ -351,7 +369,7 @@ class ListDetails extends Component<Props, State> {
                       autoComplete="off"
                       autoCorrect="off"
                       id={searchId}
-                      onChange={this.handleSearchChange}
+                      onChange={handleSearchChange}
                       placeholder="Search"
                       name="item-search"
                       value={searchValue}
@@ -374,15 +392,15 @@ class ListDetails extends Component<Props, State> {
                   </Popout>
 
                   {list.access.create ? (
-                    <IconButton appearance="create" icon={PlusIcon} onClick={this.openCreateModal}>
+                    <IconButton appearance="create" icon={PlusIcon} onClick={openCreateModal}>
                       Create
                     </IconButton>
                   ) : null}
                   <MoreDropdown
                     width={width}
                     isFullWidth={isFullWidth}
-                    onReset={this.handleReset}
-                    onFullWidthToggle={this.toggleFullWidth}
+                    onReset={handleReset}
+                    onFullWidthToggle={toggleFullWidth}
                   />
                 </FlexGroup>
 
@@ -397,8 +415,8 @@ class ListDetails extends Component<Props, State> {
                   {selectedItems.length ? (
                     <Management
                       list={list}
-                      onDeleteMany={this.onDeleteSelectedItems}
-                      onUpdateMany={this.onUpdate}
+                      onDeleteMany={onDeleteSelectedItems}
+                      // onUpdateMany={onUpdate}
                       pageSize={pageSize}
                       selectedItems={selectedItems}
                       totalItems={itemsCount}
@@ -421,8 +439,8 @@ class ListDetails extends Component<Props, State> {
           <CreateItemModal
             isOpen={showCreateModal}
             list={list}
-            onClose={this.closeCreateModal}
-            onCreate={this.onCreate}
+            onClose={closeCreateModal}
+            onCreate={onCreate}
           />
 
           <Container isFullWidth={isFullWidth}>
@@ -435,12 +453,16 @@ class ListDetails extends Component<Props, State> {
                 itemsErrors={itemsErrors}
                 list={list}
                 onChange={query.refetch}
-                onSelect={this.handleItemSelect}
-                onSelectAll={this.handleItemSelectAll}
+                onSelect={handleItemSelect}
+                onSelectAll={handleItemSelectAll}
                 handleSortChange={handleSortChange}
                 sortBy={sortBy}
                 selectedItems={selectedItems}
-                noResultsMessage={this.getNoResultsMessage()}
+                noResultsMessage={
+                  <NoResultsMessage
+                    {...{ filters, itemsCount, list, search, currentPage, handlePageReset }}
+                  />
+                }
               />
             ) : (
               <PageLoading />
