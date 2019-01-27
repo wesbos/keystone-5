@@ -119,6 +119,39 @@ function useShiftIsDown() {
   return shiftIsDown;
 }
 
+function ListTitle({ itemsCount, list, sortBy, handleSortChange }) {
+  let sortPopoutRef = useRef(null);
+
+  return (
+    <Title as="h1" margin="both">
+      {itemsCount > 0 ? list.formatCount(itemsCount) : list.plural}
+      <span>, by</span>
+      <Popout
+        innerRef={sortPopoutRef}
+        headerTitle="Sort"
+        footerContent={
+          <Note>
+            Hold <Kbd>alt</Kbd> to toggle ascending/descending
+          </Note>
+        }
+        target={
+          <SortButton>
+            {sortBy.field.label.toLowerCase()}
+            <DisclosureArrow size="0.2em" />
+          </SortButton>
+        }
+      >
+        <SortSelect
+          popoutRef={sortPopoutRef}
+          fields={list.fields}
+          onChange={handleSortChange}
+          value={sortBy}
+        />
+      </Popout>
+    </Title>
+  );
+}
+
 function NoResultsMessage({ filters, itemsCount, list, search, currentPage, handlePageReset }) {
   if (filters && filters.length) {
     return (
@@ -188,7 +221,6 @@ const ListDetails = ({
   let [searchValue, setSearchValue] = useState(search);
   let shiftIsDown = useShiftIsDown();
   let lastCheckedRef = useRef(null);
-  let sortPopoutRef = useRef(null);
   let searchInputRef = useRef(null);
   const searchId = 'ks-list-search-input';
 
@@ -207,32 +239,7 @@ const ListDetails = ({
         <ContainerQuery>
           {({ width }) => (
             <Container isFullWidth={isFullWidth}>
-              <Title as="h1" margin="both">
-                {itemsCount > 0 ? list.formatCount(itemsCount) : list.plural}
-                <span>, by</span>
-                <Popout
-                  innerRef={sortPopoutRef}
-                  headerTitle="Sort"
-                  footerContent={
-                    <Note>
-                      Hold <Kbd>alt</Kbd> to toggle ascending/descending
-                    </Note>
-                  }
-                  target={
-                    <SortButton>
-                      {sortBy.field.label.toLowerCase()}
-                      <DisclosureArrow size="0.2em" />
-                    </SortButton>
-                  }
-                >
-                  <SortSelect
-                    popoutRef={sortPopoutRef}
-                    fields={list.fields}
-                    onChange={handleSortChange}
-                    value={sortBy}
-                  />
-                </Popout>
-              </Title>
+              <ListTitle {...{ itemsCount, list, sortBy, handleSortChange }} />
 
               <FlexGroup growIndexes={[0]}>
                 <Search
