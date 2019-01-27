@@ -1,40 +1,31 @@
 /** @jsx jsx */
 import { jsx, Global } from '@emotion/core';
 import { Fragment, useEffect, useState, useRef } from 'react';
-import styled from '@emotion/styled';
 import { withRouter } from 'react-router-dom';
 
 import { PlusIcon, SearchIcon, XIcon } from '@arch-ui/icons';
 import { Input } from '@arch-ui/input';
 import { Container, FlexGroup } from '@arch-ui/layout';
-import { A11yText, Kbd, Title } from '@arch-ui/typography';
-import { Button, IconButton } from '@arch-ui/button';
+import { A11yText } from '@arch-ui/typography';
+import { IconButton } from '@arch-ui/button';
 import { LoadingSpinner } from '@arch-ui/loading';
 import { colors } from '@arch-ui/theme';
 
 import ListTable from '../../components/ListTable';
 import CreateItemModal from '../../components/CreateItemModal';
 import PageLoading from '../../components/PageLoading';
-import { Popout, DisclosureArrow } from '../../components/Popout';
+import { Popout } from '../../components/Popout';
 import ContainerQuery from '../../components/ContainerQuery';
 
 import ColumnSelect from './ColumnSelect';
 import AddFilterPopout from './Filters/AddFilterPopout';
 import ActiveFilters from './Filters/ActiveFilters';
-import SortSelect, { SortButton } from './SortSelect';
 import Pagination from './Pagination';
 import Management, { ManageToolbar } from './Management';
 import type { SortByType } from './DataProvider';
 import { MoreDropdown } from './MoreDropdown';
-
-// ==============================
-// Styled Components
-// ==============================
-
-const Note = styled.div({
-  color: colors.N60,
-  fontSize: '0.85em',
-});
+import { ListTitle } from './ListTitle';
+import { NoResultsMessage } from './NoResultsMessage';
 
 const Search = ({ children, hasValue, isFetching, onClear, onSubmit }) => {
   const Icon = hasValue ? XIcon : SearchIcon;
@@ -117,78 +108,6 @@ function useShiftIsDown() {
     };
   }, []);
   return shiftIsDown;
-}
-
-function ListTitle({ itemsCount, list, sortBy, handleSortChange }) {
-  let sortPopoutRef = useRef(null);
-
-  return (
-    <Title as="h1" margin="both">
-      {itemsCount > 0 ? list.formatCount(itemsCount) : list.plural}
-      <span>, by</span>
-      <Popout
-        innerRef={sortPopoutRef}
-        headerTitle="Sort"
-        footerContent={
-          <Note>
-            Hold <Kbd>alt</Kbd> to toggle ascending/descending
-          </Note>
-        }
-        target={
-          <SortButton>
-            {sortBy.field.label.toLowerCase()}
-            <DisclosureArrow size="0.2em" />
-          </SortButton>
-        }
-      >
-        <SortSelect
-          popoutRef={sortPopoutRef}
-          fields={list.fields}
-          onChange={handleSortChange}
-          value={sortBy}
-        />
-      </Popout>
-    </Title>
-  );
-}
-
-function NoResultsMessage({ filters, itemsCount, list, search, currentPage, handlePageReset }) {
-  if (filters && filters.length) {
-    return (
-      <span>
-        No {list.plural.toLowerCase()} found matching the{' '}
-        {filters.length > 1 ? 'filters' : 'filter'}
-      </span>
-    );
-  }
-  if (search && search.length) {
-    return (
-      <span>
-        No {list.plural.toLowerCase()} found matching &ldquo;
-        {search}
-        &rdquo;
-      </span>
-    );
-  }
-
-  if (currentPage !== 1) {
-    return (
-      <div>
-        <p>
-          Not enough {list.plural.toLowerCase()} found to show page {currentPage}.
-        </p>
-        <Button variant="ghost" onClick={handlePageReset}>
-          Show first page
-        </Button>
-      </div>
-    );
-  }
-
-  if (itemsCount === 0) {
-    return <span>No {list.plural.toLowerCase()} to display yet...</span>;
-  }
-
-  return null;
 }
 
 const ListDetails = ({
@@ -325,7 +244,6 @@ const ListDetails = ({
                       if (query.refetch) query.refetch();
                       setSelectedItems([]);
                     }}
-                    // onUpdateMany={onUpdate}
                     pageSize={pageSize}
                     selectedItems={selectedItems}
                     totalItems={itemsCount}
