@@ -60,21 +60,24 @@ export const Month = memo<Props>(({ style, index, data }) => {
         <WeekRow key={i}>
           {week.map(day => {
             const date = new Date(year, month, 3);
-            const disabled = !isSameMonth(date, day.dateValue);
+            const disabled = !isSameMonth(date, day);
             const isSelected =
-              !disabled && selectedDate !== null && areDatesEqual(selectedDate, day.dateValue);
-            const isToday = isDayToday(day.dateValue);
+              !disabled && selectedDate !== null && areDatesEqual(selectedDate, day);
+            const isToday = isDayToday(day);
+            const label = day.getDate();
             return (
               <Day
-                id={`ks-day-${day.label}-${month}-${year}`}
-                key={day.label}
+                id={`ks-day-${label}-${day.getMonth()}-${day.getFullYear()}${
+                  disabled ? '-not-in-month' : ''
+                }`}
+                key={label}
                 disabled={disabled}
-                onClick={disabled ? null : () => onSelectedChange(day.dateValue)}
+                onClick={disabled ? null : () => onSelectedChange(day)}
                 isInteractive={!disabled}
                 isSelected={isSelected}
                 isToday={isToday}
               >
-                {day.label}
+                {label}
                 {isToday ? <TodayMarker isSelected={isSelected} /> : null}
               </Day>
             );
