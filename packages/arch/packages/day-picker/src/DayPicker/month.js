@@ -1,14 +1,7 @@
 // @flow
 /** @jsx jsx */
 import { jsx } from '@emotion/core';
-import styled from '@emotion/styled';
-import {
-  isToday as isDayToday,
-  isSameMonth,
-  isEqual as areDatesEqual,
-  format,
-  setMonth,
-} from 'date-fns';
+import { isSameMonth, isEqual as areDatesEqual, format, setMonth } from 'date-fns';
 import { memo, useRef, useEffect } from 'react';
 import { colors } from '@arch-ui/theme';
 import { months, type Weeks } from './utils';
@@ -29,15 +22,6 @@ type Props = {
   },
 };
 
-const TodayMarker = styled.div(({ isSelected }) => ({
-  backgroundColor: isSelected ? 'white' : colors.danger,
-  borderRadius: 4,
-  height: 2,
-  marginBottom: -4,
-  marginTop: 2,
-  width: '1em',
-}));
-
 export const Month = memo<Props>(({ style, index, data }) => {
   const { items, selectedDate, onSelectedChange, observer } = data;
   const ref = useRef(null);
@@ -54,7 +38,7 @@ export const Month = memo<Props>(({ style, index, data }) => {
   );
   const { weeks, month, year } = items[index];
   return (
-    <div ref={ref} data-index={index} id={`ks-month-${month}-${year}`} style={style}>
+    <div ref={ref} data-index={index} id={`ks-month-${month}-${year}`} style={style} role="grid">
       <MonthHeader month={month} year={year} />
       {weeks.map((week, i) => (
         <WeekRow key={i}>
@@ -63,7 +47,6 @@ export const Month = memo<Props>(({ style, index, data }) => {
             const disabled = !isSameMonth(date, day);
             const isSelected =
               !disabled && selectedDate !== null && areDatesEqual(selectedDate, day);
-            const isToday = isDayToday(day);
             const label = day.getDate();
             return (
               <Day
@@ -71,15 +54,11 @@ export const Month = memo<Props>(({ style, index, data }) => {
                   disabled ? '-not-in-month' : ''
                 }`}
                 key={label}
-                disabled={disabled}
                 onClick={disabled ? null : () => onSelectedChange(day)}
-                isInteractive={!disabled}
+                date={day}
+                isDisabled={disabled}
                 isSelected={isSelected}
-                isToday={isToday}
-              >
-                {label}
-                {isToday ? <TodayMarker isSelected={isSelected} /> : null}
-              </Day>
+              />
             );
           })}
         </WeekRow>

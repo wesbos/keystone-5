@@ -2,16 +2,7 @@
 /** @jsx jsx */
 import { jsx } from '@emotion/core';
 import styled from '@emotion/styled';
-import {
-  getYear,
-  setMonth,
-  format,
-  setDay,
-  setYear,
-  addMonths,
-  subMonths,
-  endOfYear,
-} from 'date-fns';
+import { getYear, setMonth, setYear, addMonths, subMonths, endOfYear } from 'date-fns';
 import { VariableSizeList as List } from 'react-window';
 import { ChevronLeftIcon, ChevronRightIcon } from '@arch-ui/icons';
 import { useLayoutEffect, useState, useRef, useMemo, useCallback } from 'react';
@@ -20,7 +11,7 @@ import { yearRange, months, type Weeks, getWeeksInMonth, isNumberInRange } from 
 import { type YearPickerType, SelectMonth, SelectYear } from './selects';
 import { A11yText } from '@arch-ui/typography';
 import { Month } from './month';
-import { WeekLabels, Day } from './comps';
+import { WeekLabels } from './comps';
 import 'intersection-observer';
 
 const Wrapper = styled.div({
@@ -83,16 +74,6 @@ function scrollToDate(
   }
 }
 
-let weekLabels = (
-  <WeekLabels>
-    {[...new Array(7)]
-      .map((_, day) => format(setDay(new Date(), day), 'ddd'))
-      .map(d => (
-        <Day key={d}>{d}</Day>
-      ))}
-  </WeekLabels>
-);
-
 // this component will rerender a lot really quickly
 // so there's lots of memoization
 
@@ -116,6 +97,23 @@ export const DayPicker = ({
     date.setFullYear(yearRangeTo);
     startCurrentDateAt = endOfYear(date);
   }
+
+  // we have two different date states
+  // selectedDate
+  // date
+
+  // selectedDate is the easiest to understand
+  // it's the one that the user has selected
+  // its state isn't managed by DayPicker
+  // DayPicker accepts a selectedDate and onSelectedChange which do what you'd expect
+
+  // date is a little more complex
+  // it's based on the scroll position/month and year inputs of the day picker
+  // there are two ways that date is set: setDate and controlledSetDate
+  // setDate just sets the value of it, this is for when the user scrolls
+  // it's then used in the month and year inputs to show the value
+  // controlledSetDate sets the value but it also will scroll to the date
+  // this is for the month and year pickers
 
   const [date, setDate] = useState(startCurrentDateAt);
 
@@ -250,7 +248,7 @@ export const DayPicker = ({
         )}
       </Header>
       <div>
-        {weekLabels}
+        <WeekLabels />
         <List
           ref={listRef}
           itemSize={useCallback(
