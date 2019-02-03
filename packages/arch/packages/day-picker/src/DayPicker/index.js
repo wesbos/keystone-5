@@ -200,7 +200,6 @@ export const DayPicker = ({
             <HeaderButton
               disabled={!canGoPreviousMonth}
               onClick={() => {
-                throw new Error('test');
                 controlledSetDate(currentDate => subMonths(currentDate, 1));
               }}
             >
