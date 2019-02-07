@@ -1,6 +1,6 @@
 /** @jsx jsx */
 import { jsx } from '@emotion/core';
-import { useRef, Fragment, useLayoutEffect, useMemo, forwardRef } from 'react';
+import { useRef, Fragment, useLayoutEffect, useMemo, forwardRef, useState } from 'react';
 import { Editor } from 'slate-react';
 import { Block } from 'slate';
 import { getVisibleSelectionRect } from 'get-selection-range';
@@ -14,7 +14,6 @@ import { A11yText } from '@arch-ui/typography';
 import { CircleSlashIcon } from '@arch-ui/icons';
 import ResizeObserver from 'resize-observer-polyfill';
 import { selectionReference } from './utils';
-import { useStateWithEqualityCheck } from './hooks';
 
 function getSchema(blocks) {
   const schema = {
@@ -40,7 +39,7 @@ function getSchema(blocks) {
 }
 
 function useHasSelection() {
-  let [hasSelection, setHasSelection] = useStateWithEqualityCheck(false);
+  let [hasSelection, setHasSelection] = useState(false);
   useLayoutEffect(() => {
     const rect = getVisibleSelectionRect();
     let newValue = rect && rect.width !== 0;
@@ -58,7 +57,7 @@ const PopperRender = forwardRef(({ scheduleUpdate, editorState, style, blocks, e
 
   let shouldShowToolbar = useHasSelection();
 
-  let [toolbarElement, setToolbarElement] = useStateWithEqualityCheck(null);
+  let [toolbarElement, setToolbarElement] = useState(null);
 
   let observerRef = useRef(null);
 
@@ -211,7 +210,7 @@ function Stories({ value: editorState, onChange, blocks, className }) {
     [blocks]
   );
 
-  let [editor, setEditor] = useStateWithEqualityCheck(null);
+  let [editor, setEditor] = useState(null);
   let containerRef = useRef(null);
   return (
     <div ref={containerRef} className={className}>

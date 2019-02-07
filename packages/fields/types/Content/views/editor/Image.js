@@ -1,8 +1,7 @@
 /** @jsx jsx */
 import { jsx } from '@emotion/core';
-import { useLayoutEffect, forwardRef } from 'react';
+import { useLayoutEffect, forwardRef, useState } from 'react';
 import { Popper } from 'react-popper';
-import { useStateWithEqualityCheck } from './hooks';
 
 let PopperRender = forwardRef(
   ({ scheduleUpdate, alignment, isFocused, style, onAlignmentChange }, ref) => {
@@ -46,7 +45,7 @@ let popperModifiers = {
 };
 
 let Image = ({ alignment, attributes, isFocused, src, onAlignmentChange, ...props }) => {
-  let [referenceElement, setReferenceElement] = useStateWithEqualityCheck(null);
+  let [referenceElement, setReferenceElement] = useState(null);
 
   return (
     <div>
