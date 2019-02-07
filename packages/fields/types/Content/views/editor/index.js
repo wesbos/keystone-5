@@ -14,6 +14,8 @@ import { A11yText } from '@arch-ui/typography';
 import { CircleSlashIcon } from '@arch-ui/icons';
 import ResizeObserver from 'resize-observer-polyfill';
 import { selectionReference } from './utils';
+import { mediaQueries } from '@arch-ui/common';
+import { useMediaQuery, useIsChildFocussed } from './hooks';
 
 function getSchema(blocks) {
   const schema = {
@@ -52,7 +54,55 @@ let stopPropagation = e => {
   e.stopPropagation();
 };
 
-const PopperRender = forwardRef(({ scheduleUpdate, editorState, style, blocks, editor }, ref) => {
+function EditorToolbar({ blocks, editor, editorState }) {
+  return Object.keys(blocks)
+    .map(x => blocks[x].Toolbar)
+    .filter(x => x)
+    .reduce(
+      (children, Toolbar) => {
+        return (
+          <Toolbar editor={editor} editorState={editorState}>
+            {children}
+          </Toolbar>
+        );
+      },
+      <Fragment>
+        {Object.keys(marks).map(name => {
+          let Icon = marks[name].icon;
+          return (
+            <ToolbarButton
+              isActive={editorState.activeMarks.some(mark => mark.type === name)}
+              onClick={() => {
+                editor.toggleMark(name);
+              }}
+              key={name}
+            >
+              <Icon />
+              <A11yText>{marks[name].label}</A11yText>
+            </ToolbarButton>
+          );
+        })}
+        <ToolbarButton
+          onClick={() => {
+            markTypes.forEach(mark => {
+              editor.removeMark(mark);
+            });
+          }}
+        >
+          <CircleSlashIcon title="Remove Formatting" />
+        </ToolbarButton>
+
+        {Object.keys(blocks).map(type => {
+          let ToolbarElement = blocks[type].ToolbarElement;
+          if (ToolbarElement === undefined) {
+            return null;
+          }
+          return <ToolbarElement key={type} editor={editor} editorState={editorState} />;
+        })}
+      </Fragment>
+    );
+}
+const PopperRender = forwardRef(({ scheduleUpdate, editorState, style, children }, ref) => {
   useLayoutEffect(scheduleUpdate, [editorState]);
 
   let shouldShowToolbar = useHasSelection();
@@ -100,6 +150,8 @@ const PopperRender = forwardRef(({ scheduleUpdate, editorState, style, blocks, e
     [shouldShowToolbar, toolbarElement, scheduleUpdate]
   );
 
+  console.log(editorState.document.selection);
+
   return createPortal(
     <div
       onMouseDown={stopPropagation}
@@ -123,52 +175,7 @@ const PopperRender = forwardRef(({ scheduleUpdate, editorState, style, blocks, e
     >
       {shouldShowToolbar && (
         <div css={{ display: 'flex' }} ref={setToolbarElement}>
-          {Object.keys(blocks)
-            .map(x => blocks[x].Toolbar)
-            .filter(x => x)
-            .reduce(
-              (children, Toolbar) => {
-                return (
-                  <Toolbar editor={editor} editorState={editorState}>
-                    {children}
-                  </Toolbar>
-                );
-              },
-              <Fragment>
-                {Object.keys(marks).map(name => {
-                  let Icon = marks[name].icon;
-                  return (
-                    <ToolbarButton
-                      isActive={editorState.activeMarks.some(mark => mark.type === name)}
-                      onClick={() => {
-                        editor.toggleMark(name);
-                      }}
-                      key={name}
-                    >
-                      <Icon />
-                      <A11yText>{marks[name].label}</A11yText>
-                    </ToolbarButton>
-                  );
-                })}
-                <ToolbarButton
-                  onClick={() => {
-                    markTypes.forEach(mark => {
-                      editor.removeMark(mark);
-                    });
-                  }}
-                >
-                  <CircleSlashIcon title="Remove Formatting" />
-                </ToolbarButton>
-
-                {Object.keys(blocks).map(type => {
-                  let ToolbarElement = blocks[type].ToolbarElement;
-                  if (ToolbarElement === undefined) {
-                    return null;
-                  }
-                  return <ToolbarElement key={type} editor={editor} editorState={editorState} />;
-                })}
-              </Fragment>
-            )}
+          {children}
         </div>
       )}
     </div>,
@@ -209,9 +216,12 @@ function Stories({ value: editorState, onChange, blocks, className }) {
     },
     [blocks]
   );
+  let containerRef = useRef(null);
+
+  let isChildFocussed = useIsChildFocussed(containerRef);
 
   let [editor, setEditor] = useState(null);
-  let containerRef = useRef(null);
+  let shouldUseFixedToolbar = useMediaQuery(mediaQueries.mdDown);
   return (
     <div ref={containerRef} className={className}>
       <Editor
@@ -223,14 +233,42 @@ function Stories({ value: editorState, onChange, blocks, className }) {
           onChange(value);
         }}
       />
-      <AddBlock editor={editor} editorState={editorState} blocks={blocks} />
-      <Popper placement="top" referenceElement={selectionReference}>
-        {({ style, ref, scheduleUpdate }) => (
-          <PopperRender {...{ scheduleUpdate, editorState, style, blocks, editor, ref }} />
-        )}
-      </Popper>
+      {isChildFocussed && <AddBlock editor={editor} editorState={editorState} blocks={blocks} />}
+      {isChildFocussed ? (
+        shouldUseFixedToolbar ? (
+          <FixedToolbar>
+            <EditorToolbar {...{ editorState, blocks, editor }} />
+          </FixedToolbar>
+        ) : (
+          <Popper placement="top" referenceElement={selectionReference}>
+            {({ style, ref, scheduleUpdate }) => (
+              <PopperRender {...{ scheduleUpdate, editorState, style, ref }}>
+                <EditorToolbar {...{ editorState, blocks, editor }} />
+              </PopperRender>
+            )}
+          </Popper>
+        )
+      ) : null}
     </div>
   );
 }
 
 export default Stories;
+
+function FixedToolbar({ children }) {
+  return createPortal(
+    <div
+      onMouseDown={stopPropagation}
+      css={{
+        position: 'fixed',
+        bottom: 0,
+        left: 0,
+        display: 'flex',
+        backgroundColor: 'black',
+      }}
+    >
+      {children}
+    </div>,
+    document.body
+  );
+}
