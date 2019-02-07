@@ -54,6 +54,24 @@ let stopPropagation = e => {
   e.stopPropagation();
 };
 
+function MarkButton({ editor, editorState, mark }) {
+  let isActive = editorState.activeMarks.some(activeMark => activeMark.type === mark.name);
+  return useMemo(
+    () => (
+      <ToolbarButton
+        isActive={isActive}
+        onClick={() => {
+          editor.toggleMark(mark.name);
+        }}
+      >
+        <mark.icon />
+        <A11yText>{mark.label}</A11yText>
+      </ToolbarButton>
+    ),
+    [editor, isActive, mark]
+  );
+}
+
 function EditorToolbar({ blocks, editor, editorState }) {
   return Object.keys(blocks)
     .map(x => blocks[x].Toolbar)
@@ -68,18 +86,8 @@ function EditorToolbar({ blocks, editor, editorState }) {
       },
       <Fragment>
         {Object.keys(marks).map(name => {
-          let Icon = marks[name].icon;
           return (
-            <ToolbarButton
-              isActive={editorState.activeMarks.some(mark => mark.type === name)}
-              onClick={() => {
-                editor.toggleMark(name);
-              }}
-              key={name}
-            >
-              <Icon />
-              <A11yText>{marks[name].label}</A11yText>
-            </ToolbarButton>
+            <MarkButton mark={marks[name]} editor={editor} editorState={editorState} key={name} />
           );
         })}
         <ToolbarButton
