@@ -1,10 +1,9 @@
 /** @jsx jsx */
 import { jsx } from '@emotion/core';
-import { useRef, Fragment, useLayoutEffect, useMemo, forwardRef, useState } from 'react';
+import { useRef, Fragment, useLayoutEffect, useMemo, forwardRef, useState, memo } from 'react';
 import { Editor } from 'slate-react';
 import { Block } from 'slate';
 import { getVisibleSelectionRect } from 'get-selection-range';
-import { createPortal } from 'react-dom';
 import { Popper } from 'react-popper';
 import { marks, markTypes, plugins as markPlugins } from './marks';
 import { type as defaultType } from './blocks/paragraph';
@@ -54,23 +53,19 @@ let stopPropagation = e => {
   e.stopPropagation();
 };
 
-function MarkButton({ editor, editorState, mark, type }) {
-  let isActive = editorState.activeMarks.some(activeMark => activeMark.type === type);
-  return useMemo(
-    () => (
-      <ToolbarButton
-        isActive={isActive}
-        onClick={() => {
-          editor.toggleMark(type);
-        }}
-      >
-        <mark.icon />
-        <A11yText>{mark.label}</A11yText>
-      </ToolbarButton>
-    ),
-    [editor, isActive, mark, type]
+let MarkButton = memo(function MarkButton({ editor, isActive, mark, type }) {
+  return (
+    <ToolbarButton
+      isActive={isActive}
+      onClick={() => {
+        editor.toggleMark(type);
+      }}
+    >
+      <mark.icon />
+      <A11yText>{mark.label}</A11yText>
+    </ToolbarButton>
   );
-}
+});
 
 function EditorToolbar({ blocks, editor, editorState }) {
   return Object.keys(blocks)
@@ -86,12 +81,13 @@ function EditorToolbar({ blocks, editor, editorState }) {
       },
       <Fragment>
         {Object.keys(marks).map(type => {
+          let isActive = editorState.activeMarks.some(activeMark => activeMark.type === type);
           return (
             <MarkButton
               mark={marks[type]}
               type={type}
               editor={editor}
-              editorState={editorState}
+              isActive={isActive}
               key={type}
             />
           );
