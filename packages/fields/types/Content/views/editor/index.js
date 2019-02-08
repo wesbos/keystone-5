@@ -54,21 +54,21 @@ let stopPropagation = e => {
   e.stopPropagation();
 };
 
-function MarkButton({ editor, editorState, mark }) {
-  let isActive = editorState.activeMarks.some(activeMark => activeMark.type === mark.name);
+function MarkButton({ editor, editorState, mark, type }) {
+  let isActive = editorState.activeMarks.some(activeMark => activeMark.type === type);
   return useMemo(
     () => (
       <ToolbarButton
         isActive={isActive}
         onClick={() => {
-          editor.toggleMark(mark.name);
+          editor.toggleMark(type);
         }}
       >
         <mark.icon />
         <A11yText>{mark.label}</A11yText>
       </ToolbarButton>
     ),
-    [editor, isActive, mark]
+    [editor, isActive, mark, type]
   );
 }
 
@@ -85,9 +85,15 @@ function EditorToolbar({ blocks, editor, editorState }) {
         );
       },
       <Fragment>
-        {Object.keys(marks).map(name => {
+        {Object.keys(marks).map(type => {
           return (
-            <MarkButton mark={marks[name]} editor={editor} editorState={editorState} key={name} />
+            <MarkButton
+              mark={marks[type]}
+              type={type}
+              editor={editor}
+              editorState={editorState}
+              key={type}
+            />
           );
         })}
         <ToolbarButton
@@ -158,7 +164,7 @@ const PopperRender = forwardRef(({ scheduleUpdate, editorState, style, children 
     [shouldShowToolbar, toolbarElement, scheduleUpdate]
   );
 
-  return createPortal(
+  return (
     <div
       onMouseDown={stopPropagation}
       ref={ref}
@@ -177,6 +183,7 @@ const PopperRender = forwardRef(({ scheduleUpdate, editorState, style, children 
         // be a lot of work for little gain
         // maybe base the transition time on the previous value?
         transition: 'transform 100ms',
+        zIndex: 5000,
       }}
     >
       {shouldShowToolbar && (
@@ -184,8 +191,7 @@ const PopperRender = forwardRef(({ scheduleUpdate, editorState, style, children 
           {children}
         </div>
       )}
-    </div>,
-    document.body
+    </div>
   );
 });
 
@@ -262,7 +268,7 @@ function Stories({ value: editorState, onChange, blocks, className }) {
 export default Stories;
 
 function FixedToolbar({ children }) {
-  return createPortal(
+  return (
     <div
       onMouseDown={stopPropagation}
       css={{
@@ -271,10 +277,10 @@ function FixedToolbar({ children }) {
         left: 0,
         display: 'flex',
         backgroundColor: 'black',
+        zIndex: 5000,
       }}
     >
       {children}
-    </div>,
-    document.body
+    </div>
   );
 }
