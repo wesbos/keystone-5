@@ -15,7 +15,7 @@ import { CircleSlashIcon } from '@arch-ui/icons';
 import ResizeObserver from 'resize-observer-polyfill';
 import { selectionReference } from './utils';
 import { mediaQueries } from '@arch-ui/common';
-import { useMediaQuery, useIsChildFocussed } from './hooks';
+import { useMediaQuery, useFocus } from './hooks';
 
 function getSchema(blocks) {
   const schema = {
@@ -224,7 +224,7 @@ function Stories({ value: editorState, onChange, blocks, className }) {
   );
   let containerRef = useRef(null);
 
-  let isChildFocussed = useIsChildFocussed(containerRef);
+  let isFocussed = useFocus(containerRef);
 
   let [editor, setEditor] = useState(null);
   let shouldUseFixedToolbar = useMediaQuery(mediaQueries.mdDown);
@@ -240,7 +240,7 @@ function Stories({ value: editorState, onChange, blocks, className }) {
         }}
       />
       <AddBlock editor={editor} editorState={editorState} blocks={blocks} />
-      {isChildFocussed ? (
+      {isFocussed ? (
         shouldUseFixedToolbar ? (
           <FixedToolbar>
             <EditorToolbar {...{ editorState, blocks, editor }} />
