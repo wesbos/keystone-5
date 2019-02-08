@@ -158,8 +158,6 @@ const PopperRender = forwardRef(({ scheduleUpdate, editorState, style, children 
     [shouldShowToolbar, toolbarElement, scheduleUpdate]
   );
 
-  console.log(editorState.document.selection);
-
   return createPortal(
     <div
       onMouseDown={stopPropagation}
@@ -241,7 +239,7 @@ function Stories({ value: editorState, onChange, blocks, className }) {
           onChange(value);
         }}
       />
-      {isChildFocussed && <AddBlock editor={editor} editorState={editorState} blocks={blocks} />}
+      <AddBlock editor={editor} editorState={editorState} blocks={blocks} />
       {isChildFocussed ? (
         shouldUseFixedToolbar ? (
           <FixedToolbar>
