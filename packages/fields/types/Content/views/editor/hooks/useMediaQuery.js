@@ -6,9 +6,7 @@ export default function useMediaQuery(query) {
     () => {
       let match = window.matchMedia(query.replace('@media', '').trim());
       setMatches(match.matches);
-      console.log(match);
-      function listener(thing) {
-        console.log(thing);
+      function listener() {
         setMatches(match.matches);
       }
       match.addListener(listener);
