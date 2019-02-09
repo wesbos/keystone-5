@@ -14,6 +14,7 @@ import { CircleSlashIcon } from '@arch-ui/icons';
 import ResizeObserver from 'resize-observer-polyfill';
 import { selectionReference } from './utils';
 import { mediaQueries } from '@arch-ui/common';
+import { colors, gridSize } from '@arch-ui/theme';
 import { useMediaQuery, useFocus } from './hooks';
 
 function getSchema(blocks) {
@@ -166,9 +167,10 @@ const PopperRender = forwardRef(({ scheduleUpdate, editorState, style, children 
       ref={ref}
       style={style}
       css={{
-        backgroundColor: 'black',
-        padding: 8,
-        borderRadius: 6,
+        backgroundColor: colors.N80,
+        padding: gridSize,
+        borderRadius: 3,
+        color: 'white',
         width: 'auto',
         position: 'absolute',
         display: shouldShowToolbar ? 'flex' : 'none',
