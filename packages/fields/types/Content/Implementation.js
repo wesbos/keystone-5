@@ -1,7 +1,98 @@
 const { MongoTextInterface, Text } = require('../Text/Implementation');
 const { flatMap } = require('@voussoir/utils');
+const { walkSlateDocument } = require('./slate-walker');
 
 const GQL_TYPE_PREFIX = '_ContentType';
+
+function isKnownBlock(node, blocks) {
+  return true; // TODO;
+}
+
+/**
+ * @param data Object For example:
+ * {
+ *   document: [
+ *     { object: 'block', type: 'cloudinaryImage', data: { path: 'cloudinaryImages', action: 'create', index: 0 },
+ *     { object: 'block', type: 'cloudinaryImage', data: { path: 'cloudinaryImages', action: 'create', index: 1 },
+ *     { object: 'block', type: 'relationshipUser', data: { path: 'relationshipUsers', action: 'create', index: 0 } }
+ *     { object: 'block', type: 'relationshipUser', data: { path: 'relationshipUsers', action: 'connect', index: 0 } }
+ *   ],
+ *   cloudinaryImages: {
+ *     create: [
+ *       { data: { image: <FileObject>, align: 'center' } },
+ *       { data: { image: <FileObject>, align: 'center' } }
+ *     ]
+ *   },
+ *   relationshipUsers: {
+ *     create: [{ data: { id: 'abc123' } }],
+ *     connect: [{ id: 'xyz789' }],
+ *   },
+ * }
+ */
+async function processSerialised({ document, ...serialisations }, { blocks }) {
+
+  // TODO
+  // 1. Resolve all the `serialisations` mutations
+  const resolvedMutations = await TODO(serialisations);
+
+  return {
+    document: walkSlateDocument(
+      document,
+      {
+        visitBlock(node) {
+          // All our blocks need data, so we can early-out for any that don't have
+          // data set.
+          if (!node.data || !isKnownBlock(node, blocks)) {
+            return node;
+          }
+
+          return {
+            ...node,
+            data: {
+              _joinId: resolvedMutations[node.data.path][node.data.action][node.data.index],
+            },
+          };
+        },
+      },
+    ),
+  };
+
+}
+
+/**
+ * @param query Object For example:
+ * {
+ *   document,
+ *   cloudinaryImages {
+ *     id
+ *     publicUrl: publicUrlTransformed(transformation: { crop: 'fill', width: '200px' })
+ *   }
+ *   # _embed comes from the `relationship` block adding it to the graphql
+ *   # schema. Gives a way for that block to provide a different query for
+ *   # variations of a block (for example; the block might have
+ *   # { data: { style: 'embed' })
+ *   relationshipUsers_embed {
+ *     id
+ *     username
+ *     bio
+ *     avatar {
+ *       publicUrl: publicUrlTransformed(transformation: { crop: 'fill', width: '30px' })
+ *     }
+ *   }
+ *   relationshipUsers_mention {
+ *     id
+ *     username
+ *   }
+ * }
+ */
+function resolveDocumentAndSerialisations(id, query) {
+
+  // TODO: Default optional query parts
+  // if (!query.cloudinaryImages_fullWidth) {
+  //   query.cloudinaryImages_fullWidth = query.cloudinaryImages;
+  // }
+
+}
 
 class Content extends Text {
   constructor(path, config, listConfig) {
@@ -83,7 +174,7 @@ class Content extends Text {
   }
   getGqlAuxTypes() {
     const inputFields = `
-      structure: String
+      document: String
     `;
 
     return [
@@ -91,7 +182,7 @@ class Content extends Text {
       /*
        * For example:
        *
-         structure: String
+         document: String
          cloudinaryImages: _ContentType_cloudinaryImageRelateToManyInput
          relationships_User: _ContentType_relationship_UserRelateToManyInput
        */
@@ -116,7 +207,7 @@ class Content extends Text {
       ),
       `
       type ${this.gqlTypes.output} {
-        structure: String
+        document: String
         ${flatMap(this.complexBlocks, block =>
           flatMap(block.getGqlOutputFields(), field => field.gqlOutputFields)
         ).join('\n')}
@@ -139,13 +230,14 @@ class Content extends Text {
     // TODO: serialize / etc
     return {
       [this.path]: item => ({
-        structure: item[this.path],
+        document: item[this.path],
       }),
     };
   }
 
   async resolveInput({ resolvedData }) {
-    return resolvedData[this.path].structure;
+    return resolvedData[this.path].document;
+    return processSerialised(resolvedData[this.path]);
   }
 }
 

@@ -57,8 +57,8 @@ let ContentField = ({ field, value: serverValue, onChange, autoFocus }) => {
   );
 
   let parsedValue;
-  if (serverValue && serverValue.structure) {
-    parsedValue = JSON.parse(serverValue.structure);
+  if (serverValue && serverValue.document) {
+    parsedValue = JSON.parse(serverValue.document);
   } else {
     parsedValue = initialValue;
   }
@@ -71,8 +71,8 @@ let ContentField = ({ field, value: serverValue, onChange, autoFocus }) => {
     <FieldContainer
       onBlur={() => {
         let stringified = JSON.stringify(value.toJS());
-        if (stringified !== serverValue.structure) {
-          onChange({ structure: stringified });
+        if (stringified !== serverValue.document) {
+          onChange({ document: stringified });
         }
       }}
     >

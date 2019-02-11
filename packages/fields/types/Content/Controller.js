@@ -1,19 +1,25 @@
 import TextController from '../Text/Controller';
+import { serialiseSlateDocument, buildQueryFromSerialisation } from './serialiser';
 
 export default class ContentController extends TextController {
   getValue = data => {
     const { path } = this.config;
-    if (!data || !data[path] || !data[path].structure) {
+    if (!data || !data[path] || !data[path].document) {
       // Forcibly return null if empty string
-      return { structure: null };
+      return { document: null };
     }
-    return { structure: data[path].structure };
+    const serialisedDocument = serialiseSlateDocument(
+      data[path].document,
+      this.blocks.filter(({ isComplexData }) => isComplexData)
+    );
+
+    return buildQueryFromSerialisation(serialisedDocument);
   };
 
   getQueryFragment = () => {
     return `
       ${this.path} {
-        structure
+        document
       }
     `;
   };
