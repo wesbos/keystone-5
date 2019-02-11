@@ -1,7 +1,20 @@
+const pluralize = require('pluralize');
 const { Block } = require('../../Block');
 
 class CloudinaryBlock extends Block {
-  constructor({ adapter }, { fromList, createAuxList, getListByKey }) {
+  static get type() {
+    return 'cloudinaryImage';
+  }
+
+  static get isComplexDataType() {
+    return true;
+  }
+
+  static get viewPath() {
+    return require.resolve('../Content/views/editor/blocks/image-container');
+  }
+
+  constructor({ adapter }, { fromList, createAuxList, getListByKey, listConfig }) {
     super();
 
     this.fromList = fromList;
@@ -21,18 +34,31 @@ class CloudinaryBlock extends Block {
     }
 
     this.auxList = auxList;
+
+    // Require here to avoid circular dependencies
+    const Relationship = require('../Relationship').implementation;
+
+    // When content blocks are specified that have complex KS5 datatypes, the
+    // client needs to send them along as graphQL inputs separate to the
+    // `structure`. Those inputs are relationships to our join tables.  Here we
+    // create a Relationship field to leverage existing functionality for
+    // generating the graphQL schema.
+    const fieldName = pluralize.plural(CloudinaryBlock.type);
+    this._inputFields = [
+      new Relationship(fieldName, { ref: auxListKey, many: true, withMeta: false }, listConfig),
+    ];
+
+    this._outputFields = [
+      new Relationship(fieldName, { ref: auxListKey, many: true, withMeta: false }, listConfig),
+    ];
   }
 
-  static get type() {
-    return 'cloudinaryImage';
+  getGqlInputFields() {
+    return this._inputFields;
   }
 
-  static get isComplexDataType() {
-    return true;
-  }
-
-  static get viewPath() {
-    return require.resolve('../Content/views/editor/blocks/image-container');
+  getGqlOutputFields() {
+    return this._outputFields;
   }
 }
 
