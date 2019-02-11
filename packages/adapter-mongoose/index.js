@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
 const inflection = require('inflection');
+const pSettle = require('p-settle');
 const { escapeRegExp, pick, getType, mapKeys, mapKeyNames } = require('@voussoir/utils');
 
 const {
@@ -100,6 +101,11 @@ class MongooseAdapter extends BaseKeystoneAdapter {
       { useNewUrlParser: true, ...adapterConnectOptions, dbName }
     );
   }
+  async postConnect() {
+    return await pSettle(
+      Object.values(this.listAdapters).map(listAdapter => listAdapter.postConnect())
+    );
+  }
 
   disconnect() {
     return this.mongoose.disconnect();
@@ -159,12 +165,6 @@ class MongooseListAdapter extends BaseListAdapter {
     });
   }
 
-  findFieldAdapterForQuerySegment(segment) {
-    return this.fieldAdapters
-      .filter(adapter => adapter.isRelationship)
-      .find(adapter => adapter.supportsRelationshipQuery(segment));
-  }
-
   prepareFieldAdapter(fieldAdapter) {
     fieldAdapter.addToMongooseSchema(this.schema, this.mongoose, {
       addPreSaveHook: this.addPreSaveHook.bind(this),
@@ -214,7 +214,7 @@ class MongooseListAdapter extends BaseListAdapter {
   async create(data) {
     const dataToSave = await this.onPreSave(data);
     const createdData = await this.model.create(dataToSave);
-    return this.onPostRead(createdData);
+    return this.onPostRead(pick(createdData, ['id', ...Object.keys(data)]));
   }
 
   async delete(id) {
@@ -314,10 +314,6 @@ class MongooseListAdapter extends BaseListAdapter {
         }
       }
     );
-  }
-
-  itemsQueryMeta(args) {
-    return this.itemsQuery(args, { meta: true });
   }
 }
 

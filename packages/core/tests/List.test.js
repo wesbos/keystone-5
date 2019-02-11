@@ -59,6 +59,11 @@ class MockAdapter {
   newListAdapter = () => new MockListAdapter();
 }
 
+Text.adapters['mock'] = {};
+Checkbox.adapters['mock'] = {};
+Float.adapters['mock'] = {};
+Relationship.adapters['mock'] = {};
+
 const context = {
   getListAccessControlForUser: () => true,
   getFieldAccessControlForUser: (listKey, fieldPath, existingItem) =>
@@ -108,8 +113,11 @@ const listExtras = (getAuth = () => true, queryMethod = undefined) => ({
   getGraphQLQuery: () => queryMethod,
 });
 
-const setup = (extraConfig, getAuth, queryMethod) =>
-  new List('Test', { ...config, ...extraConfig }, listExtras(getAuth, queryMethod));
+const setup = (extraConfig, getAuth, queryMethod) => {
+  const list = new List('Test', { ...config, ...extraConfig }, listExtras(getAuth, queryMethod));
+  list.initFields();
+  return list;
+};
 
 describe('new List()', () => {
   test('new List() - Smoke test', () => {
@@ -199,6 +207,7 @@ describe('new List()', () => {
     expect(list.fieldsByPath['writeOnce']).toBeInstanceOf(Text.implementation);
 
     const noFieldsList = new List('NoField', { fields: {} }, listExtras());
+    noFieldsList.initFields();
     expect(noFieldsList.fields).toHaveLength(0);
   });
 
@@ -1277,6 +1286,7 @@ describe('Maps from Native JS types to Keystone types', () => {
           defaultAccess: { list: true, field: true },
         }
       );
+      list.initFields();
       expect(list.fieldsByPath.foo).toBeInstanceOf(keystoneType.implementation);
     });
   });
