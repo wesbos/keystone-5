@@ -1,8 +1,8 @@
 {
-  "name": "keystone_demo_blog",
+  "name": "keystone_demo_contextual_help",
   "private": true,
   "version": "1.0.1",
-  "author": "Nathan Simpson",
+  "author": "Mauro Alvarez",
   "license": "MIT",
   "engines": {
     "node": ">=8.4.0"
