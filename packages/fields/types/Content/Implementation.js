@@ -1,5 +1,5 @@
 const { MongoTextInterface, KnexTextInterface, Text } = require('../Text/Implementation');
-const { flatMap } = require('@voussoir/utils');
+const { flatMap } = require('@keystone-alpha/utils');
 
 const GQL_TYPE_PREFIX = '_ContentType';
 
@@ -53,7 +53,7 @@ class Content extends Text {
    * 1. The block implementation (eg; ./views/editor/blocks/embed.js)
    * 2. The config (eg; { apiKey: process.env.EMBEDLY_API_KEY })
    * Because of the way we bundle the admin UI, we have to split apart these
-   * two halves and send them seperately (see `@voussoir/field-views-loader`):
+   * two halves and send them seperately (see `@keystone-alpha/field-views-loader`):
    * 1. Sent as a "view" (see `extendViews` below), which will be required (so
    *    it's included in the bundle).
    * 2. Sent as a serialized JSON object (see `extendAdminMeta` below), which
